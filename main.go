@@ -20,7 +20,7 @@ func main() {
 	flag.Parse()
 
 	err := providerserver.Serve(context.Background(), provider.New, providerserver.ServeOpts{
-		Address:         "registry.terraform.io/hashicorp/external",
+		Address:         "registry.terraform.io/bryan-bar/toolbox",
 		Debug:           debug,
 		ProtocolVersion: 5,
 	})

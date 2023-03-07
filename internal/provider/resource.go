@@ -33,13 +33,13 @@ func (e *externalResource) Metadata(_ context.Context, req resource.MetadataRequ
 
 func (e *externalResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "The `external` data source allows an external program implementing a specific protocol " +
-			"(defined below) to act as a data source, exposing arbitrary data for use elsewhere in the Terraform " +
+		Description: "The `external` resource allows an external program implementing a specific protocol " +
+			"(defined below) to act as a resource, exposing arbitrary data for use elsewhere in the Terraform " +
 			"configuration.\n" +
 			"\n" +
 			"**Warning** This mechanism is provided as an \"escape hatch\" for exceptional situations where a " +
 			"first-class Terraform provider is not more appropriate. Its capabilities are limited in comparison " +
-			"to a true data source, and implementing a data source via an external program is likely to hurt the " +
+			"to a true resource, and implementing a resource via an external program is likely to hurt the " +
 			"portability of your Terraform configuration by creating dependencies on external programs and " +
 			"libraries that may not be available (or may need to be used differently) on different operating " +
 			"systems.\n" +

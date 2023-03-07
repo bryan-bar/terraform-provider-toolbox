@@ -17,7 +17,7 @@ func New() provider.Provider {
 }
 
 func (p *externalProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "bryan-bar"
+	resp.TypeName = "toolbox"
 }
 
 func (p *externalProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {

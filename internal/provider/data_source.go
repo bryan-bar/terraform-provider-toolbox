@@ -28,7 +28,7 @@ func NewExternalDataSource() datasource.DataSource {
 type externalDataSource struct{}
 
 func (n *externalDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName
+	resp.TypeName = req.ProviderTypeName + "_external"
 }
 
 func (n *externalDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {

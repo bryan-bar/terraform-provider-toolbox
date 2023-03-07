@@ -18,7 +18,7 @@ development of this provider. Some are in place, others are ongoing processes, o
 
 Specific to this provider:
 
-* The data source protocol uses JSON objects to communicate between the provider and the external program.
+* The data source/resource protocol uses JSON objects to communicate between the provider and the external program.
 
 General to development:
 
