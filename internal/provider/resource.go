@@ -264,10 +264,6 @@ func run_external(ctx context.Context, program []types.String, query map[string]
 
 	filteredQuery := make(map[string]string)
 	for key, value := range query {
-		if value.IsNull() || value.ValueString() == "" {
-			continue
-		}
-
 		filteredQuery[key] = value.ValueString()
 	}
 
