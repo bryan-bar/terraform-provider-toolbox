@@ -7,7 +7,7 @@ description: |-
 # toolbox Provider
 
 ~> **Warning** Please visit use
-(external provider by HashiCorp)[https://registry.terraform.io/providers/hashicorp/external/latest]
+[external provider by HashiCorp](https://registry.terraform.io/providers/hashicorp/external/latest)
 if you only need to use the data source
 
 `toolbox` is a provider that exists to provide an interface

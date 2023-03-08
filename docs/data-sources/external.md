@@ -115,7 +115,8 @@ for key in $(echo "${TERRAFORM_INPUT}" | jq -r 'keys_unsorted|.[]'); do
 done
 
 # stdout must be returned as a json object
-# referenced within terraform from result: data.external.<name>.result
+# referenced within terraform from result: 
+# data.toolbox_external.<name>.result or toolbox_external.<name>.result if a resource
 # stderr passed through to terraform as is
 # Safely produce a JSON object containing the result value.
 # jq will ensure that the value is properly quoted
