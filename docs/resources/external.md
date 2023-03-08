@@ -62,7 +62,6 @@ re-run the program each time the state is refreshed.
 
 ### Optional
 
-- `enable` (Boolean) Allow user to skip running of external programs without needing to remove it from state
 - `query` (Map of String) A map of string values to pass to the external program as the query arguments. If not supplied, the program will receive an empty object as its input.
 - `working_dir` (String) Working directory of the program. If not supplied, the program will run in the current directory.
 

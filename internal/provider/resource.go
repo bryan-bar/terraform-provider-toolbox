@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -84,15 +83,6 @@ func (e *externalResource) Schema(ctx context.Context, req resource.SchemaReques
 				Description: "The id of the resource. This will always be set to `-`",
 				Computed:    true,
 			},
-
-			"enable": schema.BoolAttribute{
-				Description: "Allow user to skip running of external programs without needing to remove it from state",
-				Optional:    true,
-				Computed:    true,
-				PlanModifiers: []planmodifier.Bool{
-					EnableDefaultValue(),
-				},
-			},
 		},
 	}
 }
@@ -103,7 +93,6 @@ type externalResourceModelV0 struct {
 	Query      types.Map    `tfsdk:"query"`
 	Result     types.Map    `tfsdk:"result"`
 	ID         types.String `tfsdk:"id"`
-	Enable     types.Bool   `tfsdk:"enable"`
 }
 
 func (e *externalResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -193,49 +182,6 @@ func (e *externalResource) Update(ctx context.Context, req resource.UpdateReques
 func (e *externalResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 }
 func (e *externalResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-}
-
-type enableDefaultValuePlanModifier struct {
-	Default types.Bool
-}
-
-func EnableDefaultValue() planmodifier.Bool {
-	return &enableDefaultValuePlanModifier{}
-}
-
-var _ planmodifier.Bool = (*enableDefaultValuePlanModifier)(nil)
-
-func (r *enableDefaultValuePlanModifier) Description(ctx context.Context) string {
-	return fmt.Sprintf("If value is not set, defaults to %s", r.Default)
-}
-
-func (r *enableDefaultValuePlanModifier) MarkdownDescription(ctx context.Context) string {
-	return r.Description(ctx)
-}
-
-func (r *enableDefaultValuePlanModifier) PlanModifyBool(ctx context.Context, req planmodifier.BoolRequest, resp *planmodifier.BoolResponse) {
-
-	if req.Plan.Raw.IsNull() {
-		resp.Diagnostics.AddWarning(
-			"Removes resource from state",
-			"Call to program skipped during this stage",
-		)
-		return
-	}
-
-	var enable types.Bool
-	diags := req.Plan.GetAttribute(ctx, path.Root("enable"), &enable)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	if enable.IsNull() {
-		resp.PlanValue = types.BoolValue(true)
-		return
-	}
-
-	resp.PlanValue = enable
 }
 
 func run_external(ctx context.Context, program []types.String, query map[string]types.String, workingDir string) (types.Map, diag.Diagnostics) {
