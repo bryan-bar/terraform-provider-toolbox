@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 
-	"github.com/terraform-providers/terraform-provider-external/internal/provider"
+	"github.com/bryan-bar/terraform-provider-toolbox/internal/provider"
 )
 
 // Generate the Terraform provider documentation using `tfplugindocs`:

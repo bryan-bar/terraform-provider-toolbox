@@ -1,4 +1,4 @@
-module github.com/terraform-providers/terraform-provider-external
+module github.com/bryan-bar/terraform-provider-toolbox
 
 go 1.18
 
