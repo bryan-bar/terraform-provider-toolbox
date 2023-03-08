@@ -17,7 +17,7 @@ The `external` data source allows an external program implementing a specific pr
 ## Example Usage
 
 ```terraform
-data "external" "example" {
+data "toolbox_external" "example" {
   program = ["python", "${path.module}/example-data-source.py"]
 
   query = {
