@@ -1,5 +1,10 @@
 # Visit https://goreleaser.com for documentation on how to customize this
 # behavior.
+archives:
+- files:
+  # Ensure only built binary is archived
+  format: zip
+  name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
 before:
   hooks:
     # this is just an example and not a requirement for provider building/publishing
@@ -37,9 +42,6 @@ builds:
       goos: windows
     - goos: darwin
       goarch: '386'
-archives:
-- format: zip
-  name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
 checksum:
   extra_files:
     - glob: 'terraform-registry-manifest.json'

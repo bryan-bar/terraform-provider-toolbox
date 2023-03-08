@@ -1,12 +1,16 @@
 ---
-page_title: "Provider: External"
+page_title: "Provider: toolbox"
 description: |-
-  The external provider allows external scripts to be integrated with Terraform.
+  The provider allows external scripts to be integrated with Terraform.
 ---
 
-# External Provider
+# toolbox Provider
 
-`external` is a special provider that exists to provide an interface
+~> **Warning** [External Provider by Hashicorp](https://registry.terraform.io/providers/hashicorp/external/latest/docs) should be used instead of this provider
+if you need to only use the data source
+https://registry.terraform.io/providers/hashicorp/external/latest/docs
+
+`toolbox` is a special provider that exists to provide an interface
 between Terraform and external programs.
 
 Using this provider it is possible to write separate programs that can
