@@ -21,13 +21,10 @@ func (p *externalProvider) Metadata(ctx context.Context, req provider.MetadataRe
 }
 
 func (p *externalProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-
 }
 
 func (p *externalProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource{
-		NewExternalDataSource,
-	}
+	return []func() datasource.DataSource{}
 }
 
 func (p *externalProvider) Resources(ctx context.Context) []func() resource.Resource {

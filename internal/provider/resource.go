@@ -13,12 +13,27 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 type externalResource struct{}
+type externalResourceModelV0 struct {
+	Program    types.List   `tfsdk:"program"`
+	Create     types.Bool   `tfsdk:"create"`
+	Destroy    types.Bool   `tfsdk:"destroy"`
+	WorkingDir types.String `tfsdk:"working_dir"`
+	Query      types.Map    `tfsdk:"query"`
+	Result     types.Map    `tfsdk:"result"`
+	ID         types.String `tfsdk:"id"`
+}
 
 var _ resource.Resource = (*externalResource)(nil)
 
@@ -35,6 +50,8 @@ func (e *externalResource) Schema(ctx context.Context, req resource.SchemaReques
 		Description: "The `external` resource allows an external program implementing a specific protocol " +
 			"(defined below) to act as a resource, exposing arbitrary data for use elsewhere in the Terraform " +
 			"configuration.\n" +
+			"As of now, this resource will be re-created if any value is changed." +
+			"Similar to null_resource combined with trigger but the output can be saved into our state.\n" +
 			"\n" +
 			"**Warning** This mechanism is provided as an \"escape hatch\" for exceptional situations where a " +
 			"first-class Terraform provider is not more appropriate. Its capabilities are limited in comparison " +
@@ -58,12 +75,37 @@ func (e *externalResource) Schema(ctx context.Context, req resource.SchemaReques
 				Validators: []validator.List{
 					listvalidator.SizeAtLeast(1),
 				},
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.RequiresReplaceIfConfigured(),
+				},
 			},
 
+			"create": schema.BoolAttribute{
+				Description: "Run on create: enabled by default",
+				Optional:    true,
+				Default:     booldefault.StaticBool(true),
+				Computed:    true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplaceIfConfigured(),
+				},
+			},
+
+			"destroy": schema.BoolAttribute{
+				Description: "Run on destroy: disabled by default",
+				Optional:    true,
+				Default:     booldefault.StaticBool(false),
+				Computed:    true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplaceIfConfigured(),
+				},
+			},
 			"working_dir": schema.StringAttribute{
 				Description: "Working directory of the program. If not supplied, the program will run " +
 					"in the current directory.",
 				Optional: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplaceIfConfigured(),
+				},
 			},
 
 			"query": schema.MapAttribute{
@@ -71,6 +113,9 @@ func (e *externalResource) Schema(ctx context.Context, req resource.SchemaReques
 					"arguments. If not supplied, the program will receive an empty object as its input.",
 				ElementType: types.StringType,
 				Optional:    true,
+				PlanModifiers: []planmodifier.Map{
+					mapplanmodifier.RequiresReplaceIfConfigured(),
+				},
 			},
 
 			"result": schema.MapAttribute{
@@ -87,14 +132,6 @@ func (e *externalResource) Schema(ctx context.Context, req resource.SchemaReques
 	}
 }
 
-type externalResourceModelV0 struct {
-	Program    types.List   `tfsdk:"program"`
-	WorkingDir types.String `tfsdk:"working_dir"`
-	Query      types.Map    `tfsdk:"query"`
-	Result     types.Map    `tfsdk:"result"`
-	ID         types.String `tfsdk:"id"`
-}
-
 func (e *externalResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	tflog.Trace(ctx, "Creating resource")
 	var config externalResourceModelV0
@@ -105,6 +142,8 @@ func (e *externalResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
+	// Read Terraform plan
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &config)...)
 	config.ID = types.StringValue("-")
 
 	var program []types.String
@@ -125,12 +164,13 @@ func (e *externalResource) Create(ctx context.Context, req resource.CreateReques
 
 	workingDir := config.WorkingDir.ValueString()
 
-	result, errors := run_external(ctx, program, query, workingDir)
+	result, errors := run_external(ctx, program, query, workingDir, config.Create.ValueBool())
 
 	if errors != nil {
 		resp.Diagnostics.Append(errors...)
 		return
 	}
+
 	config.Result = result
 
 	diags = resp.State.Set(ctx, &config)
@@ -138,12 +178,18 @@ func (e *externalResource) Create(ctx context.Context, req resource.CreateReques
 }
 
 func (e *externalResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	tflog.Trace(ctx, "Updating resource")
-	var config externalResourceModelV0
+}
 
+func (e *externalResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+}
+
+func (e *externalResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var config externalResourceModelV0
+	// Read Terraform plan
+	resp.Diagnostics.Append(req.State.Get(ctx, &config)...)
 	config.ID = types.StringValue("-")
 
-	diags := req.Config.Get(ctx, &config)
+	diags := req.State.Get(ctx, &config)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -167,30 +213,27 @@ func (e *externalResource) Update(ctx context.Context, req resource.UpdateReques
 
 	workingDir := config.WorkingDir.ValueString()
 
-	result, errors := run_external(ctx, program, query, workingDir)
+	result, errors := run_external(ctx, program, query, workingDir, config.Destroy.ValueBool())
 
 	if errors != nil {
 		resp.Diagnostics.Append(errors...)
 		return
 	}
 	config.Result = result
-
-	diags = resp.State.Set(ctx, config)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (e *externalResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-}
-func (e *externalResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-}
-
-func run_external(ctx context.Context, program []types.String, query map[string]types.String, workingDir string) (types.Map, diag.Diagnostics) {
+func run_external(ctx context.Context, program []types.String, query map[string]types.String, workingDir string, execute bool) (types.Map, diag.Diagnostics) {
 
 	var diag diag.Diagnostics
 	//initMap := make(map[string]string)
 	initMap := map[string]string{}
 	emptyMap, _ := types.MapValueFrom(ctx, types.StringType, initMap)
 	filteredProgram := make([]string, 0, len(program))
+
+	if !execute {
+		return emptyMap, nil
+	}
 
 	for _, programArgRaw := range program {
 		if programArgRaw.IsNull() || programArgRaw.ValueString() == "" {
