@@ -33,9 +33,18 @@ done
 
 # stdout must be returned as a json object
 # referenced within terraform from result: 
-# data.toolbox_external.<name>.result or toolbox_external.<name>.result if a resource
-# stderr passed through to terraform as is
+# toolbox_external.<name>.result
+# stderr passed through to terraform as is.
 # Safely produce a JSON object containing the result value.
 # jq will ensure that the value is properly quoted
 # and escaped to produce a valid JSON string.
-jq -n --arg arg0 "$TERRAFORM_INPUT" '{"passed":$arg0}'
+# jq -n --arg arg0 "$TERRAFORM_INPUT" '{"passed":$arg0}'
+json='{}'
+for key in "${!INPUT_MAPPING[@]}"; do
+    json=$( jq -n --arg json "$json" \
+                  --arg key "$key" \
+                  --arg value "${INPUT_MAPPING["$key"]}" \
+                  '$json | fromjson + { ($key): ($value) }' 
+    )
+done
+echo "$json"
