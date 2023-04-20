@@ -12,22 +12,23 @@ locals {
   ip_address = "1.2.3.4"
 }
 
-resource "toolbox_external" "json_processing" {
+resource "toolbox_external" "bash_script" {
   program = [
     "bash",
-    "${path.module}/json-processing.sh"]
+    "${path.module}/run.sh"
+  ]
 
   query = {
     # arbitrary map from strings to strings, passed
     # to the external program as the data query.
-    mount_points = local.mount_points
-    ssh_user = local.ssh_user
-    ip_address = local.ip_address
+    mount_points = base64encode(jsonencode(local.mount_points))
+    ssh_user = base64encode(local.ssh_user)
+    ip_address = base64encode(local.ip_address)
   }
 }
 
 output "results" {
   value = [
-    toolbox_external.json_processing.results
+    toolbox_external.bash_script.result
   ]
 }

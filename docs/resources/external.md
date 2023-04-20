@@ -18,6 +18,7 @@ As of now, this resource will be re-created if any value is changed.Similar to n
 
 ## Example Usage
 
+#### Inline Bash
 ```terraform
 terraform {
   required_providers {
@@ -45,7 +46,7 @@ resource "toolbox_external" "mapped" {
   ]
 }
 
-resource "toolbox_external" "mixed_encoded" {
+resource "toolbox_external" "mapped_encoded" {
   program = [
     "bash",
     "-c",
@@ -54,6 +55,14 @@ resource "toolbox_external" "mixed_encoded" {
       jq -n --arg somevar "$somevar" \
          '{"stdout":$somevar}'
     EOF
+  ]
+}
+
+output "mapped_results" {
+  value = [
+    toolbox_external.mapped.result,
+    toolbox_external.mapped_encoded.result,
+    {for k,v in toolbox_external.mapped_encoded.result: k=>jsondecode(base64decode(v))},
   ]
 }
 
@@ -81,6 +90,14 @@ resource "toolbox_external" "listed_encoded" {
   ]
 }
 
+output "listed_results" {
+  value = [
+    toolbox_external.listed.result,
+    toolbox_external.listed_encoded.result,
+    {for k,v in toolbox_external.listed_encoded.result: k=>jsondecode(base64decode(v))},
+  ]
+}
+
 resource "toolbox_external" "mixed" {
   program = ["bash", "-c",<<EOF
     somevar=${jsonencode(local.mixed)}
@@ -99,16 +116,50 @@ resource "toolbox_external" "mixed_encoded" {
   ]
 }
 
-output "results" {
+output "mixed_results" {
   value = [
-    toolbox_external.mapped.results,
-    toolbox_external.mixed_encoded.results,
-    toolbox_external.listed.results,
-    toolbox_external.listed_encoded.results,
-    toolbox_external.mixed.results,
-    toolbox_external.mixed_encoded.results,
+    toolbox_external.mixed.result,
+    toolbox_external.mixed_encoded.result,
+    {for k,v in toolbox_external.mixed_encoded.result: k=>jsondecode(base64decode(v))},
   ]
 }
+```
+
+#### Inline Ansible
+```terraform
+terraform {
+  required_providers {
+    toolbox = {
+      source = "bryan-bar/toolbox"
+    }
+  }
+}
+
+resource "toolbox_external" "ansible" {
+
+  program = [
+    "bash",
+    "-c",
+    <<EOF
+      output=$(ANSIBLE_STDOUT_CALLBACK=json ansible-playbook playbook.yml | jq -r .plays[0].tasks[0].hosts.localhost.stdout)
+      jq -n --arg output "$output" '{"stdout":$output}'
+    EOF
+  ]
+}
+
+output "test" {
+  value = toolbox_external.ansible.result
+}
+```
+```yaml
+---
+- hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: test
+      ansible.builtin.shell:
+        cmd: >
+          echo "Echo from playbook"
 ```
 
 ## External Program Protocol
@@ -177,26 +228,207 @@ locals {
   ip_address = "1.2.3.4"
 }
 
-resource "toolbox_external" "json_processing" {
+resource "toolbox_external" "bash_script" {
   program = [
     "bash",
-    "${path.module}/json-processing.sh"]
+    "${path.module}/run.sh"
+  ]
 
   query = {
     # arbitrary map from strings to strings, passed
     # to the external program as the data query.
-    mount_points = local.mount_points
-    ssh_user = local.ssh_user
-    ip_address = local.ip_address
+    mount_points = base64encode(jsonencode(local.mount_points))
+    ssh_user = base64encode(local.ssh_user)
+    ip_address = base64encode(local.ip_address)
   }
 }
 
 output "results" {
   value = [
-    toolbox_external.json_processing.results
+    toolbox_external.bash_script.result
   ]
 }
 ```
+```shell
+#!/bin/bash
+
+# Exit if any of the intermediate steps fail
+set -e
+
+# Handle stdin from Terraform "external" data source
+# A parameter "query" of type map(string) is passed to stdin
+# In order to control the expected output, parameters use base64 encoding
+# ex: query = {
+#       "mount_points" = base64encode(jsonencode(var.machine.spec.additional_volumes[*].mount_point))
+#       "ssh_user"     = base64encode(var.operating_system.ssh_user)
+#       "ip_address"   = base64encode(aws_instance.machine.public_ip)
+#     }
+# stdin: {
+#  "ip_address": "NTIuOTEuMjMwLjEzNQ==",
+#  "mount_points": "WyIvb3B0L3BnX2RhdGEiLCIvb3B0L3BnX3dhbCJd",
+#  "ssh_user": "cm9ja3k="
+# }
+#
+# Grab stdin with 'jq' and
+# insert decoded values into an associative array
+TERRAFORM_INPUT=$(jq '.')
+declare -A INPUT_MAPPING
+for key in $(echo "${TERRAFORM_INPUT}" | jq -r 'keys_unsorted|.[]'); do
+    INPUT_MAPPING["$key"]=$(echo "$TERRAFORM_INPUT" | jq -r .[\"$key\"] | base64 -d)
+done
+
+json='{}'
+for key in "${!INPUT_MAPPING[@]}"; do
+    json=$( jq -n --arg json "$json" \
+                  --arg key "$key" \
+                  --arg value "${INPUT_MAPPING["$key"]}" \
+                  '$json | fromjson + { ($key): ($value) }' 
+    )
+done
+echo "$json"
+```
+
+## Processing JSON with ansible playbooks
+Since the external resource protocol uses JSON, it is recommended to use
+the [`posix collection's json_callback`](https://docs.ansible.com/ansible/latest/collections/ansible/posix/json_callback.html).
+
+```terraform
+terraform {
+  required_providers {
+    toolbox = {
+      source = "bryan-bar/toolbox"
+    }
+  }
+}
+
+locals {
+  mount_points = ["/test0", "/test2", "/test3/dir"]
+  ssh_user = "rocky"
+  ip_address = "1.2.3.4"
+}
+
+resource "toolbox_external" "ansible_script" {
+  program = [
+    "bash",
+    "${path.module}/run.sh"
+  ]
+  query = {
+    mount_points = base64encode(jsonencode(local.mount_points))
+    ssh_user = base64encode(jsonencode(local.ssh_user))
+    ip_address = base64encode(jsonencode(local.ip_address))
+  }
+}
+
+output "ansible_output" {
+  value = toolbox_external.ansible_script.result
+}
+
+resource "toolbox_external" "ansible_script_nomounts" {
+  program = [
+    "bash",
+    "${path.module}/run.sh"
+  ]
+  query = {
+    ssh_user = base64encode(jsonencode(local.ssh_user))
+    ip_address = base64encode(jsonencode(local.ip_address))
+  }
+}
+
+output "ansible_nomounts" {
+  value = toolbox_external.ansible_script_nomounts.result
+}
+
+resource "toolbox_external" "ansible_base64" {
+  program = [
+    "bash",
+    "${path.module}/run_base64.sh"
+  ]
+  query = {
+    mount_points = base64encode(jsonencode(local.mount_points))
+    ssh_user = base64encode(jsonencode(local.ssh_user))
+    ip_address = base64encode(jsonencode(local.ip_address))
+  }
+}
+
+output "ansible_base64" {
+  value = {for k,v in toolbox_external.ansible_base64.result: k=>jsondecode(base64decode(v))}
+}
+
+output "ansible_base64_raw" {
+  value = toolbox_external.ansible_base64.result
+}
+```
+```yaml
+---
+- hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: test
+      ansible.builtin.shell:
+        cmd: >
+          echo "Echo from playbook - {{ mount_points|default('mount points not set') }}"
+```
+```shell
+# Exit if any of the intermediate steps fail
+set -e
+
+# Handle stdin from Terraform "external" data source
+# A parameter "query" of type map(string) is passed to stdin
+# In order to control the expected output, parameters use base64 encoding
+# Grab stdin with 'jq' and
+# insert decoded values into an associative array
+TERRAFORM_INPUT=$(jq '.')
+declare -A INPUT_MAPPING
+for key in $(echo "${TERRAFORM_INPUT}" | jq -r 'keys_unsorted|.[]'); do
+    INPUT_MAPPING["$key"]=$(echo "$TERRAFORM_INPUT" | jq -r .[\"$key\"] | base64 -d)
+done
+
+# Re-create json objects from input
+json='{}'
+for key in "${!INPUT_MAPPING[@]}"; do
+    json=$( jq -n --arg json "$json" \
+                  --arg key "$key" \
+                  --arg value "${INPUT_MAPPING["$key"]}" \
+                  '$json | fromjson + { ($key): ($value) }' 
+    )
+done
+
+ansible_output=$(ANSIBLE_STDOUT_CALLBACK=json ANSIBLE_WHITELIST_CALLBACK=json ansible-playbook playbook.yml --extra-vars "$json")
+output=$(echo $ansible_output | jq -r .plays[0].tasks[0].hosts.localhost.stdout)    
+jq -n --arg output "$output" '{"stdout":$output}'
+```
+```shell
+# Exit if any of the intermediate steps fail
+set -e
+
+# Handle stdin from Terraform "external" data source
+# A parameter "query" of type map(string) is passed to stdin
+# In order to control the expected output, parameters use base64 encoding
+# Grab stdin with 'jq' and
+# insert decoded values into an associative array
+TERRAFORM_INPUT=$(jq '.')
+declare -A INPUT_MAPPING
+for key in $(echo "${TERRAFORM_INPUT}" | jq -r 'keys_unsorted|.[]'); do
+    INPUT_MAPPING["$key"]=$(echo "$TERRAFORM_INPUT" | jq -r .[\"$key\"] | base64 -d)
+done
+
+# Re-create json objects from input
+json='{}'
+for key in "${!INPUT_MAPPING[@]}"; do
+    json=$( jq -n --arg json "$json" \
+                  --arg key "$key" \
+                  --arg value "${INPUT_MAPPING["$key"]}" \
+                  '$json | fromjson + { ($key): ($value) }' 
+    )
+done
+
+ansible_output=$(ANSIBLE_STDOUT_CALLBACK=json ANSIBLE_WHITELIST_CALLBACK=json ansible-playbook playbook.yml --extra-vars "$json")
+output=$(echo $ansible_output | base64)    
+jq -n --arg output "$output" '{"stdout":$output}'
+```
+
+
+## JSON Processing example:
 ```shell
 #!/bin/bash
 

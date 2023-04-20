@@ -24,7 +24,7 @@ resource "toolbox_external" "mapped" {
   ]
 }
 
-resource "toolbox_external" "mixed_encoded" {
+resource "toolbox_external" "mapped_encoded" {
   program = [
     "bash",
     "-c",
@@ -33,6 +33,14 @@ resource "toolbox_external" "mixed_encoded" {
       jq -n --arg somevar "$somevar" \
          '{"stdout":$somevar}'
     EOF
+  ]
+}
+
+output "mapped_results" {
+  value = [
+    toolbox_external.mapped.result,
+    toolbox_external.mapped_encoded.result,
+    {for k,v in toolbox_external.mapped_encoded.result: k=>jsondecode(base64decode(v))},
   ]
 }
 
@@ -60,6 +68,14 @@ resource "toolbox_external" "listed_encoded" {
   ]
 }
 
+output "listed_results" {
+  value = [
+    toolbox_external.listed.result,
+    toolbox_external.listed_encoded.result,
+    {for k,v in toolbox_external.listed_encoded.result: k=>jsondecode(base64decode(v))},
+  ]
+}
+
 resource "toolbox_external" "mixed" {
   program = ["bash", "-c",<<EOF
     somevar=${jsonencode(local.mixed)}
@@ -78,13 +94,10 @@ resource "toolbox_external" "mixed_encoded" {
   ]
 }
 
-output "results" {
+output "mixed_results" {
   value = [
-    toolbox_external.mapped.results,
-    toolbox_external.mixed_encoded.results,
-    toolbox_external.listed.results,
-    toolbox_external.listed_encoded.results,
-    toolbox_external.mixed.results,
-    toolbox_external.mixed_encoded.results,
+    toolbox_external.mixed.result,
+    toolbox_external.mixed_encoded.result,
+    {for k,v in toolbox_external.mixed_encoded.result: k=>jsondecode(base64decode(v))},
   ]
 }

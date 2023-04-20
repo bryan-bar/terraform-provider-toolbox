@@ -10,7 +10,12 @@ description: |-
 
 ## Example Usage
 
-{{ tffile "examples/resources/external/external.tf" }}
+#### Inline Bash
+{{ tffile "examples/resources/external/inline_bash/main.tf" }}
+
+#### Inline Ansible
+{{ tffile "examples/resources/external/inline_ansible/main.tf" }}
+{{ codefile "yaml" "examples/resources/external/inline_ansible/playbook.yml" }}
 
 ## External Program Protocol
 
@@ -46,5 +51,18 @@ language.
 The following example shows some input/output boilerplate code for a
 resource implemented in bash:
 
-{{ tffile "examples/resources/external/json_processing.tf" }}
+{{ tffile "examples/resources/external/run_bash/main.tf" }}
+{{ codefile "shell" "examples/resources/external/run_bash/run.sh" }}
+
+## Processing JSON with ansible playbooks
+Since the external resource protocol uses JSON, it is recommended to use
+the [`posix collection's json_callback`](https://docs.ansible.com/ansible/latest/collections/ansible/posix/json_callback.html).
+
+{{ tffile "examples/resources/external/run_ansible/main.tf" }}
+{{ codefile "yaml" "examples/resources/external/run_ansible/playbook.yml" }}
+{{ codefile "shell" "examples/resources/external/run_ansible/run.sh" }}
+{{ codefile "shell" "examples/resources/external/run_ansible/run_base64.sh" }}
+
+
+## JSON Processing example:
 {{ codefile "shell" "examples/resources/external/json_processing.sh" }}

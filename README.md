@@ -26,9 +26,9 @@ We also provide:
 Compatibility table between this provider, the [Terraform Plugin Protocol](https://www.terraform.io/plugin/how-terraform-works#terraform-plugin-protocol)
 version it implements, and Terraform:
 
-| External Provider | Terraform Plugin Protocol | Terraform |
-|:-----------------:|:-------------------------:|:---------:|
-|    `>= 0.0.1`     |            `6`            | `>= 1.3.6` |
+| External Provider | Terraform Plugin Protocol | Terraform |   Golang  |
+|:-----------------:|:-------------------------:|:---------:|:---------:|
+|    `>= 0.0.1`     |            `6`            | `>= 1.3.0`| `>= 1.19` |
 
 Details can be found querying the [Registry API](https://www.terraform.io/internals/provider-registry-protocol#list-available-versions)
 that return all the details about which version are currently available for a particular provider.
