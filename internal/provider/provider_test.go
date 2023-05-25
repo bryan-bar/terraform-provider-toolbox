@@ -16,8 +16,8 @@ func protoV5ProviderFactories() map[string]func() (tfprotov5.ProviderServer, err
 func providerVersion223() map[string]resource.ExternalProvider {
 	return map[string]resource.ExternalProvider{
 		"external": {
-			VersionConstraint: "2.2.3",
-			Source:            "hashicorp/external",
+			VersionConstraint: "0.0.12",
+			Source:            "bryan-bar/toolbox",
 		},
 	}
 }

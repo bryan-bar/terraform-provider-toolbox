@@ -20,7 +20,7 @@ const (
 	EnvTfAccExternalTimeoutTest = "TF_ACC_EXTERNAL_TIMEOUT_TEST"
 )
 
-const testDataSourceConfig_basic = `
+const testResourceConfig_basic = `
 data "external" "test" {
   program = ["%s", "cheese"]
 
@@ -38,8 +38,8 @@ output "argument" {
 }
 `
 
-func TestDataSource_basic(t *testing.T) {
-	programPath, err := buildDataSourceTestProgram()
+func TestResource_basic(t *testing.T) {
+	programPath, err := buildResourceTestProgram()
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -49,7 +49,7 @@ func TestDataSource_basic(t *testing.T) {
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(testDataSourceConfig_basic, programPath),
+				Config: fmt.Sprintf(testResourceConfig_basic, programPath),
 				Check: func(s *terraform.State) error {
 					_, ok := s.RootModule().Resources["data.external.test"]
 					if !ok {
@@ -85,7 +85,7 @@ func TestDataSource_basic(t *testing.T) {
 	})
 }
 
-const testDataSourceConfig_error = `
+const testResourceConfig_error = `
 data "external" "test" {
   program = ["%s"]
 
@@ -95,8 +95,8 @@ data "external" "test" {
 }
 `
 
-func TestDataSource_error(t *testing.T) {
-	programPath, err := buildDataSourceTestProgram()
+func TestResource_error(t *testing.T) {
+	programPath, err := buildResourceTestProgram()
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -106,7 +106,7 @@ func TestDataSource_error(t *testing.T) {
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config:      fmt.Sprintf(testDataSourceConfig_error, programPath),
+				Config:      fmt.Sprintf(testResourceConfig_error, programPath),
 				ExpectError: regexp.MustCompile("I was asked to fail"),
 			},
 		},
@@ -114,7 +114,7 @@ func TestDataSource_error(t *testing.T) {
 }
 
 // Reference: https://github.com/hashicorp/terraform-provider-external/issues/110
-func TestDataSource_Program_OnlyEmptyString(t *testing.T) {
+func TestResource_Program_OnlyEmptyString(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []resource.TestStep{
@@ -137,8 +137,8 @@ func TestDataSource_Program_OnlyEmptyString(t *testing.T) {
 }
 
 // Reference: https://github.com/hashicorp/terraform-provider-external/issues/110
-func TestDataSource_Program_PathAndEmptyString(t *testing.T) {
-	programPath, err := buildDataSourceTestProgram()
+func TestResource_Program_PathAndEmptyString(t *testing.T) {
+	programPath, err := buildResourceTestProgram()
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -168,7 +168,7 @@ func TestDataSource_Program_PathAndEmptyString(t *testing.T) {
 	})
 }
 
-func TestDataSource_Program_EmptyStringAndNullValues(t *testing.T) {
+func TestResource_Program_EmptyStringAndNullValues(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []resource.TestStep{
@@ -190,8 +190,8 @@ func TestDataSource_Program_EmptyStringAndNullValues(t *testing.T) {
 	})
 }
 
-func TestDataSource_Query_NullAndEmptyValue(t *testing.T) {
-	programPath, err := buildDataSourceTestProgram()
+func TestResource_Query_NullAndEmptyValue(t *testing.T) {
+	programPath, err := buildResourceTestProgram()
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -220,8 +220,8 @@ func TestDataSource_Query_NullAndEmptyValue(t *testing.T) {
 	})
 }
 
-func TestDataSource_upgrade(t *testing.T) {
-	programPath, err := buildDataSourceTestProgram()
+func TestResource_upgrade(t *testing.T) {
+	programPath, err := buildResourceTestProgram()
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -231,7 +231,7 @@ func TestDataSource_upgrade(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				ExternalProviders: providerVersion223(),
-				Config:            fmt.Sprintf(testDataSourceConfig_basic, programPath),
+				Config:            fmt.Sprintf(testResourceConfig_basic, programPath),
 				Check: func(s *terraform.State) error {
 					_, ok := s.RootModule().Resources["data.external.test"]
 					if !ok {
@@ -265,12 +265,12 @@ func TestDataSource_upgrade(t *testing.T) {
 			},
 			{
 				ProtoV5ProviderFactories: protoV5ProviderFactories(),
-				Config:                   fmt.Sprintf(testDataSourceConfig_basic, programPath),
+				Config:                   fmt.Sprintf(testResourceConfig_basic, programPath),
 				PlanOnly:                 true,
 			},
 			{
 				ProtoV5ProviderFactories: protoV5ProviderFactories(),
-				Config:                   fmt.Sprintf(testDataSourceConfig_basic, programPath),
+				Config:                   fmt.Sprintf(testResourceConfig_basic, programPath),
 				Check: func(s *terraform.State) error {
 					_, ok := s.RootModule().Resources["data.external.test"]
 					if !ok {
@@ -306,11 +306,11 @@ func TestDataSource_upgrade(t *testing.T) {
 	})
 }
 
-func buildDataSourceTestProgram() (string, error) {
+func buildResourceTestProgram() (string, error) {
 	// We have a simple Go program that we use as a stub for testing.
 	cmd := exec.Command(
 		"go", "install",
-		"github.com/bryan-bar/terraform-provider-toolbox/internal/provider/test-programs/tf-acc-external-data-source",
+		"github.com/bryan-bar/terraform-provider-toolbox/internal/provider/test-programs/tf-acc-external-resource",
 	)
 	err := cmd.Run()
 
@@ -324,13 +324,13 @@ func buildDataSourceTestProgram() (string, error) {
 	}
 
 	programPath := path.Join(
-		filepath.SplitList(gopath)[0], "bin", "tf-acc-external-data-source",
+		filepath.SplitList(gopath)[0], "bin", "tf-acc-external-resource",
 	)
 	return programPath, nil
 }
 
 // Reference: https://github.com/hashicorp/terraform-provider-external/issues/145
-func TestDataSource_20MinuteTimeout(t *testing.T) {
+func TestResource_20MinuteTimeout(t *testing.T) {
 	if os.Getenv(EnvTfAccExternalTimeoutTest) == "" {
 		t.Skipf("Skipping this test since the %s environment variable is not set to any value. "+
 			"This test requires 20 minutes to run, so it is disabled by default.",
