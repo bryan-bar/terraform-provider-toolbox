@@ -1,4 +1,4 @@
-module github.com/bryan-bar/terraform-provider-toolbox
+module github.com/EnterpriseDB/terraform-provider-toolbox
 
 go 1.19
 

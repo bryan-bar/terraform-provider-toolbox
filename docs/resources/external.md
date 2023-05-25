@@ -23,7 +23,7 @@ As of now, this resource will be re-created if any value is changed.Similar to n
 terraform {
   required_providers {
     toolbox = {
-      source = "bryan-bar/toolbox"
+      source = "EnterpriseDB/toolbox"
     }
   }
 }
@@ -130,7 +130,7 @@ output "mixed_results" {
 terraform {
   required_providers {
     toolbox = {
-      source = "bryan-bar/toolbox"
+      source = "EnterpriseDB/toolbox"
     }
   }
 }
@@ -217,7 +217,7 @@ resource implemented in bash:
 terraform {
   required_providers {
     toolbox = {
-      source = "bryan-bar/toolbox"
+      source = "EnterpriseDB/toolbox"
     }
   }
 }
@@ -296,7 +296,7 @@ the [`posix collection's json_callback`](https://docs.ansible.com/ansible/latest
 terraform {
   required_providers {
     toolbox = {
-      source = "bryan-bar/toolbox"
+      source = "EnterpriseDB/toolbox"
     }
   }
 }
