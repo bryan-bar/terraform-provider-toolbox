@@ -7,11 +7,11 @@ import (
 	"os"
 )
 
-// This is a minimal implementation of the external data source protocol
+// This is a minimal implementation of the external resource protocol
 // intended only for use in the provider acceptance tests.
 //
 // In practice it's likely not much harder to just write a real Terraform
-// plugin if you're going to be writing your data source in Go anyway;
+// plugin if you're going to be writing your resource in Go anyway;
 // this example is just in Go because we want to avoid introducing
 // additional language runtimes into the test environment.
 func main() {
@@ -38,6 +38,10 @@ func main() {
 
 	if len(os.Args) >= 2 {
 		result["argument"] = os.Args[1]
+	}
+
+	for queryKey, queryValue := range query {
+		result[queryKey] = queryValue
 	}
 
 	resultBytes, err := json.Marshal(result)

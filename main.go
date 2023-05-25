@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 
-	"github.com/terraform-providers/terraform-provider-external/internal/provider"
+	"github.com/bryan-bar/terraform-provider-toolbox/internal/provider"
 )
 
 // Generate the Terraform provider documentation using `tfplugindocs`:
@@ -20,9 +20,9 @@ func main() {
 	flag.Parse()
 
 	err := providerserver.Serve(context.Background(), provider.New, providerserver.ServeOpts{
-		Address:         "registry.terraform.io/hashicorp/external",
+		Address:         "registry.terraform.io/bryan-bar/toolbox",
 		Debug:           debug,
-		ProtocolVersion: 5,
+		ProtocolVersion: 6,
 	})
 	if err != nil {
 		log.Fatal(err)

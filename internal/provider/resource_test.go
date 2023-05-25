@@ -20,8 +20,8 @@ const (
 	EnvTfAccExternalTimeoutTest = "TF_ACC_EXTERNAL_TIMEOUT_TEST"
 )
 
-const testDataSourceConfig_basic = `
-data "external" "test" {
+const testResourceConfig_basic = `
+resource "toolbox_external" "test" {
   program = ["%s", "cheese"]
 
   query = {
@@ -30,16 +30,16 @@ data "external" "test" {
 }
 
 output "query_value" {
-  value = "${data.external.test.result["query_value"]}"
+  value = "${toolbox_external.test.result["query_value"]}"
 }
 
 output "argument" {
-  value = "${data.external.test.result["argument"]}"
+  value = "${toolbox_external.test.result["argument"]}"
 }
 `
 
-func TestDataSource_basic(t *testing.T) {
-	programPath, err := buildDataSourceTestProgram()
+func TestResource_basic(t *testing.T) {
+	programPath, err := buildResourceTestProgram()
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -49,9 +49,9 @@ func TestDataSource_basic(t *testing.T) {
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(testDataSourceConfig_basic, programPath),
+				Config: fmt.Sprintf(testResourceConfig_basic, programPath),
 				Check: func(s *terraform.State) error {
-					_, ok := s.RootModule().Resources["data.external.test"]
+					_, ok := s.RootModule().Resources["toolbox_external.test"]
 					if !ok {
 						return fmt.Errorf("missing data resource")
 					}
@@ -85,8 +85,8 @@ func TestDataSource_basic(t *testing.T) {
 	})
 }
 
-const testDataSourceConfig_error = `
-data "external" "test" {
+const testResourceConfig_error = `
+resource "toolbox_external" "test" {
   program = ["%s"]
 
   query = {
@@ -95,8 +95,8 @@ data "external" "test" {
 }
 `
 
-func TestDataSource_error(t *testing.T) {
-	programPath, err := buildDataSourceTestProgram()
+func TestResource_error(t *testing.T) {
+	programPath, err := buildResourceTestProgram()
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -106,7 +106,7 @@ func TestDataSource_error(t *testing.T) {
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config:      fmt.Sprintf(testDataSourceConfig_error, programPath),
+				Config:      fmt.Sprintf(testResourceConfig_error, programPath),
 				ExpectError: regexp.MustCompile("I was asked to fail"),
 			},
 		},
@@ -114,13 +114,13 @@ func TestDataSource_error(t *testing.T) {
 }
 
 // Reference: https://github.com/hashicorp/terraform-provider-external/issues/110
-func TestDataSource_Program_OnlyEmptyString(t *testing.T) {
+func TestResource_Program_OnlyEmptyString(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
 				Config: `
-					data "external" "test" {
+					resource "toolbox_external" "test" {
 						program = [
 							"", # e.g. a variable that became empty
 						]
@@ -137,8 +137,8 @@ func TestDataSource_Program_OnlyEmptyString(t *testing.T) {
 }
 
 // Reference: https://github.com/hashicorp/terraform-provider-external/issues/110
-func TestDataSource_Program_PathAndEmptyString(t *testing.T) {
-	programPath, err := buildDataSourceTestProgram()
+func TestResource_Program_PathAndEmptyString(t *testing.T) {
+	programPath, err := buildResourceTestProgram()
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -149,7 +149,7 @@ func TestDataSource_Program_PathAndEmptyString(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: fmt.Sprintf(`
-					data "external" "test" {
+					resource "toolbox_external" "test" {
 						program = [
 							%[1]q,
 							"", # e.g. a variable that became empty
@@ -161,20 +161,20 @@ func TestDataSource_Program_PathAndEmptyString(t *testing.T) {
 					}
 				`, programPath),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.external.test", "result.query_value", "valuetest"),
+					resource.TestCheckResourceAttr("toolbox_external.test", "result.query_value", "valuetest"),
 				),
 			},
 		},
 	})
 }
 
-func TestDataSource_Program_EmptyStringAndNullValues(t *testing.T) {
+func TestResource_Program_EmptyStringAndNullValues(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
 				Config: `
-					data "external" "test" {
+					resource "toolbox_external" "test" {
 						program = [
 							null, "", # e.g. a variable that became empty
 						]
@@ -190,8 +190,8 @@ func TestDataSource_Program_EmptyStringAndNullValues(t *testing.T) {
 	})
 }
 
-func TestDataSource_Query_NullValue(t *testing.T) {
-	programPath, err := buildDataSourceTestProgram()
+func TestResource_Query_NullAndEmptyValue(t *testing.T) {
+	programPath, err := buildResourceTestProgram()
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -202,24 +202,26 @@ func TestDataSource_Query_NullValue(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: fmt.Sprintf(`
-					data "external" "test" {
+					resource "toolbox_external" "test" {
 						program = [%[1]q]
 				
 						query = {
-							value = null
+							value = null,
+							value2 = ""
 						}
 					}
 				`, programPath),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.external.test", "result.query_value", ""),
+					resource.TestCheckResourceAttr("toolbox_external.test", "result.value", ""),
+					resource.TestCheckResourceAttr("toolbox_external.test", "result.value2", ""),
 				),
 			},
 		},
 	})
 }
 
-func TestDataSource_upgrade(t *testing.T) {
-	programPath, err := buildDataSourceTestProgram()
+func TestResource_upgrade(t *testing.T) {
+	programPath, err := buildResourceTestProgram()
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -228,12 +230,12 @@ func TestDataSource_upgrade(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		Steps: []resource.TestStep{
 			{
-				ExternalProviders: providerVersion223(),
-				Config:            fmt.Sprintf(testDataSourceConfig_basic, programPath),
+				ExternalProviders: providerVersion(),
+				Config:            fmt.Sprintf(testResourceConfig_basic, programPath),
 				Check: func(s *terraform.State) error {
-					_, ok := s.RootModule().Resources["data.external.test"]
+					_, ok := s.RootModule().Resources["toolbox_external.test"]
 					if !ok {
-						return fmt.Errorf("missing data resource")
+						return fmt.Errorf("missing resource")
 					}
 
 					outputs := s.RootModule().Outputs
@@ -263,16 +265,16 @@ func TestDataSource_upgrade(t *testing.T) {
 			},
 			{
 				ProtoV5ProviderFactories: protoV5ProviderFactories(),
-				Config:                   fmt.Sprintf(testDataSourceConfig_basic, programPath),
+				Config:                   fmt.Sprintf(testResourceConfig_basic, programPath),
 				PlanOnly:                 true,
 			},
 			{
 				ProtoV5ProviderFactories: protoV5ProviderFactories(),
-				Config:                   fmt.Sprintf(testDataSourceConfig_basic, programPath),
+				Config:                   fmt.Sprintf(testResourceConfig_basic, programPath),
 				Check: func(s *terraform.State) error {
-					_, ok := s.RootModule().Resources["data.external.test"]
+					_, ok := s.RootModule().Resources["toolbox_external.test"]
 					if !ok {
-						return fmt.Errorf("missing data resource")
+						return fmt.Errorf("missing resource")
 					}
 
 					outputs := s.RootModule().Outputs
@@ -304,11 +306,11 @@ func TestDataSource_upgrade(t *testing.T) {
 	})
 }
 
-func buildDataSourceTestProgram() (string, error) {
+func buildResourceTestProgram() (string, error) {
 	// We have a simple Go program that we use as a stub for testing.
 	cmd := exec.Command(
 		"go", "install",
-		"github.com/terraform-providers/terraform-provider-external/internal/provider/test-programs/tf-acc-external-data-source",
+		"github.com/bryan-bar/terraform-provider-toolbox/internal/provider/test-programs/tf-acc-external-resource",
 	)
 	err := cmd.Run()
 
@@ -322,13 +324,13 @@ func buildDataSourceTestProgram() (string, error) {
 	}
 
 	programPath := path.Join(
-		filepath.SplitList(gopath)[0], "bin", "tf-acc-external-data-source",
+		filepath.SplitList(gopath)[0], "bin", "tf-acc-external-resource",
 	)
 	return programPath, nil
 }
 
 // Reference: https://github.com/hashicorp/terraform-provider-external/issues/145
-func TestDataSource_20MinuteTimeout(t *testing.T) {
+func TestResource_20MinuteTimeout(t *testing.T) {
 	if os.Getenv(EnvTfAccExternalTimeoutTest) == "" {
 		t.Skipf("Skipping this test since the %s environment variable is not set to any value. "+
 			"This test requires 20 minutes to run, so it is disabled by default.",
@@ -341,7 +343,7 @@ func TestDataSource_20MinuteTimeout(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: `
-					data "external" "test" {
+					resource "toolbox_external" "test" {
 						program = ["sleep", "1205"] # over 20 minutes
 					}
 				`,

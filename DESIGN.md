@@ -18,7 +18,7 @@ development of this provider. Some are in place, others are ongoing processes, o
 
 Specific to this provider:
 
-* The data source protocol uses JSON objects to communicate between the provider and the external program.
+* The data source/resource protocol uses JSON objects to communicate between the provider and the external program.
 
 General to development:
 
@@ -29,6 +29,5 @@ General to development:
   also provide tests for issues that get identified and fixed, so to prove resolution as well as avoid regression.
 * **Automate boring tasks**: Processes that are manual, repetitive and can be automated, should be. In addition to be a
   time-saving practice, this ensures consistency and reduces human error (ex. static code analysis).
-* **Semantic versioning**: Adhering to HashiCorp's own
-  [Versioning Specification](https://www.terraform.io/plugin/sdkv2/best-practices/versioning#versioning-specification)
-  ensures we provide a consistent practitioner experience, and a clear process to deprecation and decommission.
+* **Semantic versioning**: [Versioning Specification](https://www.terraform.io/plugin/sdkv2/best-practices/versioning#versioning-specification)
+  to ensure we provide a consistent practitioner experience, and a clear process to deprecation and decommission.

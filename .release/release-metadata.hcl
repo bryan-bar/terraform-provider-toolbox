@@ -1,2 +1,2 @@
-url_source_repository      = "https://github.com/hashicorp/terraform-provider-external"
-url_license                = "https://github.com/hashicorp/terraform-provider-external/blob/main/LICENSE"
+url_source_repository      = "https://github.com/bryan-bar/terraform-provider-toolbox"
+url_license                = "https://github.com/bryan-bar/terraform-provider-toolbox/blob/main/LICENSE"

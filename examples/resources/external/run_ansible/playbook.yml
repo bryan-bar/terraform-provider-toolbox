@@ -1,0 +1,8 @@
+---
+- hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: test
+      ansible.builtin.shell:
+        cmd: >
+          echo "Echo from playbook - {{ mount_points|default('mount points not set') }}"

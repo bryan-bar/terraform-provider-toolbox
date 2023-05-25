@@ -9,37 +9,53 @@ import (
 	"runtime"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
-var (
-	_ datasource.DataSource = (*externalDataSource)(nil)
-)
-
-func NewExternalDataSource() datasource.DataSource {
-	return &externalDataSource{}
+type externalResource struct{}
+type externalResourceModelV0 struct {
+	Program    types.List   `tfsdk:"program"`
+	Create     types.Bool   `tfsdk:"create"`
+	Destroy    types.Bool   `tfsdk:"destroy"`
+	WorkingDir types.String `tfsdk:"working_dir"`
+	Query      types.Map    `tfsdk:"query"`
+	Result     types.Map    `tfsdk:"result"`
+	ID         types.String `tfsdk:"id"`
 }
 
-type externalDataSource struct{}
+var _ resource.Resource = (*externalResource)(nil)
 
-func (n *externalDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName
+func NewExternalResource() resource.Resource {
+	return &externalResource{}
 }
 
-func (n *externalDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (e *externalResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_external"
+}
+
+func (e *externalResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "The `external` data source allows an external program implementing a specific protocol " +
-			"(defined below) to act as a data source, exposing arbitrary data for use elsewhere in the Terraform " +
+		Description: "The `external` resource allows an external program implementing a specific protocol " +
+			"(defined below) to act as a resource, exposing arbitrary data for use elsewhere in the Terraform " +
 			"configuration.\n" +
+			"As of now, this resource will be re-created if any value is changed." +
+			"Similar to null_resource combined with trigger but the output can be saved into our state.\n" +
 			"\n" +
 			"**Warning** This mechanism is provided as an \"escape hatch\" for exceptional situations where a " +
 			"first-class Terraform provider is not more appropriate. Its capabilities are limited in comparison " +
-			"to a true data source, and implementing a data source via an external program is likely to hurt the " +
+			"to a true resource, and implementing a resource via an external program is likely to hurt the " +
 			"portability of your Terraform configuration by creating dependencies on external programs and " +
 			"libraries that may not be available (or may need to be used differently) on different operating " +
 			"systems.\n" +
@@ -59,12 +75,37 @@ func (n *externalDataSource) Schema(ctx context.Context, req datasource.SchemaRe
 				Validators: []validator.List{
 					listvalidator.SizeAtLeast(1),
 				},
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.RequiresReplaceIfConfigured(),
+				},
 			},
 
+			"create": schema.BoolAttribute{
+				Description: "Run on create: enabled by default",
+				Optional:    true,
+				Default:     booldefault.StaticBool(true),
+				Computed:    true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplaceIfConfigured(),
+				},
+			},
+
+			"destroy": schema.BoolAttribute{
+				Description: "Run on destroy: disabled by default",
+				Optional:    true,
+				Default:     booldefault.StaticBool(false),
+				Computed:    true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplaceIfConfigured(),
+				},
+			},
 			"working_dir": schema.StringAttribute{
 				Description: "Working directory of the program. If not supplied, the program will run " +
 					"in the current directory.",
 				Optional: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplaceIfConfigured(),
+				},
 			},
 
 			"query": schema.MapAttribute{
@@ -72,6 +113,9 @@ func (n *externalDataSource) Schema(ctx context.Context, req datasource.SchemaRe
 					"arguments. If not supplied, the program will receive an empty object as its input.",
 				ElementType: types.StringType,
 				Optional:    true,
+				PlanModifiers: []planmodifier.Map{
+					mapplanmodifier.RequiresReplaceIfConfigured(),
+				},
 			},
 
 			"result": schema.MapAttribute{
@@ -81,45 +125,32 @@ func (n *externalDataSource) Schema(ctx context.Context, req datasource.SchemaRe
 			},
 
 			"id": schema.StringAttribute{
-				Description: "The id of the data source. This will always be set to `-`",
+				Description: "The id of the resource. This will always be set to `-`",
 				Computed:    true,
 			},
 		},
 	}
 }
 
-func (n *externalDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var config externalDataSourceModelV0
+func (e *externalResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	tflog.Trace(ctx, "Creating resource")
+	var config externalResourceModelV0
 
 	diags := req.Config.Get(ctx, &config)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	// Read Terraform plan
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &config)...)
+	config.ID = types.StringValue("-")
+
 	var program []types.String
 
 	diags = config.Program.ElementsAs(ctx, &program, false)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	filteredProgram := make([]string, 0, len(program))
-
-	for _, programArgRaw := range program {
-		if programArgRaw.IsNull() || programArgRaw.ValueString() == "" {
-			continue
-		}
-
-		filteredProgram = append(filteredProgram, programArgRaw.ValueString())
-	}
-
-	if len(filteredProgram) == 0 {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("program"),
-			"External Program Missing",
-			"The data source was configured without a program to execute. Verify the configuration contains at least one non-empty value.",
-		)
 		return
 	}
 
@@ -131,25 +162,110 @@ func (n *externalDataSource) Read(ctx context.Context, req datasource.ReadReques
 		return
 	}
 
-	filteredQuery := make(map[string]string)
-	for key, value := range query {
-		if value.IsNull() || value.ValueString() == "" {
+	workingDir := config.WorkingDir.ValueString()
+
+	result, errors := run_external(ctx, program, query, workingDir, config.Create.ValueBool())
+
+	if errors != nil {
+		resp.Diagnostics.Append(errors...)
+		return
+	}
+
+	config.Result = result
+
+	diags = resp.State.Set(ctx, &config)
+	resp.Diagnostics.Append(diags...)
+}
+
+func (e *externalResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+}
+
+func (e *externalResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+}
+
+func (e *externalResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var config externalResourceModelV0
+	// Read Terraform plan
+	resp.Diagnostics.Append(req.State.Get(ctx, &config)...)
+	config.ID = types.StringValue("-")
+
+	diags := req.State.Get(ctx, &config)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var program []types.String
+
+	diags = config.Program.ElementsAs(ctx, &program, false)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var query map[string]types.String
+
+	diags = config.Query.ElementsAs(ctx, &query, false)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	workingDir := config.WorkingDir.ValueString()
+
+	result, errors := run_external(ctx, program, query, workingDir, config.Destroy.ValueBool())
+
+	if errors != nil {
+		resp.Diagnostics.Append(errors...)
+		return
+	}
+	config.Result = result
+	resp.Diagnostics.Append(diags...)
+}
+
+func run_external(ctx context.Context, program []types.String, query map[string]types.String, workingDir string, execute bool) (types.Map, diag.Diagnostics) {
+
+	var diag diag.Diagnostics
+	//initMap := make(map[string]string)
+	initMap := map[string]string{}
+	emptyMap, _ := types.MapValueFrom(ctx, types.StringType, initMap)
+	filteredProgram := make([]string, 0, len(program))
+
+	if !execute {
+		return emptyMap, nil
+	}
+
+	for _, programArgRaw := range program {
+		if programArgRaw.IsNull() || programArgRaw.ValueString() == "" {
 			continue
 		}
 
+		filteredProgram = append(filteredProgram, programArgRaw.ValueString())
+	}
+
+	if len(filteredProgram) == 0 {
+		diag.AddAttributeError(path.Root("program"),
+			"External Program Missing",
+			"The data source was configured without a program to execute. Verify the configuration contains at least one non-empty value.",
+		)
+		return emptyMap, diag
+	}
+
+	filteredQuery := make(map[string]string)
+	for key, value := range query {
 		filteredQuery[key] = value.ValueString()
 	}
 
 	queryJson, err := json.Marshal(filteredQuery)
 	if err != nil {
-		resp.Diagnostics.AddAttributeError(
+		diag.AddAttributeError(
 			path.Root("query"),
 			"Query Handling Failed",
 			"The data source received an unexpected error while attempting to parse the query. "+
 				"This is always a bug in the external provider code and should be reported to the provider developers."+
 				fmt.Sprintf("\n\nError: %s", err),
 		)
-		return
+		return emptyMap, diag
 	}
 
 	// first element is assumed to be an executable command, possibly found
@@ -157,7 +273,7 @@ func (n *externalDataSource) Read(ctx context.Context, req datasource.ReadReques
 	_, err = exec.LookPath(filteredProgram[0])
 
 	if err != nil {
-		resp.Diagnostics.AddAttributeError(
+		diag.AddAttributeError(
 			path.Root("program"),
 			"External Program Lookup Failed",
 			"The data source received an unexpected error while attempting to parse the query. "+
@@ -175,10 +291,8 @@ The program must also be executable according to the platform where Terraform is
 				fmt.Sprintf("\nProgram: %s", program[0])+
 				fmt.Sprintf("\nError: %s", err),
 		)
-		return
+		return emptyMap, diag
 	}
-
-	workingDir := config.WorkingDir.ValueString()
 
 	cmd := exec.CommandContext(ctx, filteredProgram[0], filteredProgram[1:]...)
 	cmd.Dir = workingDir
@@ -193,7 +307,7 @@ The program must also be executable according to the platform where Terraform is
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			if exitErr.Stderr != nil && len(exitErr.Stderr) > 0 {
-				resp.Diagnostics.AddAttributeError(
+				diag.AddAttributeError(
 					path.Root("program"),
 					"External Program Execution Failed",
 					"The data source received an unexpected error while attempting to execute the program."+
@@ -201,10 +315,10 @@ The program must also be executable according to the platform where Terraform is
 						fmt.Sprintf("\nError Message: %s", string(exitErr.Stderr))+
 						fmt.Sprintf("\nState: %s", err),
 				)
-				return
+				return emptyMap, diag
 			}
 
-			resp.Diagnostics.AddAttributeError(
+			diag.AddAttributeError(
 				path.Root("program"),
 				"External Program Execution Failed",
 				"The data source received an unexpected error while attempting to execute the program.\n\n"+
@@ -212,23 +326,23 @@ The program must also be executable according to the platform where Terraform is
 					fmt.Sprintf("\n\nProgram: %s", cmd.Path)+
 					fmt.Sprintf("\nState: %s", err),
 			)
-			return
+			return emptyMap, diag
 		}
 
-		resp.Diagnostics.AddAttributeError(
+		diag.AddAttributeError(
 			path.Root("program"),
 			"External Program Execution Failed",
 			"The data source received an unexpected error while attempting to execute the program."+
 				fmt.Sprintf("\n\nProgram: %s", cmd.Path)+
 				fmt.Sprintf("\nError: %s", err),
 		)
-		return
+		return emptyMap, diag
 	}
 
 	result := map[string]string{}
 	err = json.Unmarshal(resultJson, &result)
 	if err != nil {
-		resp.Diagnostics.AddAttributeError(
+		diag.AddAttributeError(
 			path.Root("program"),
 			"Unexpected External Program Results",
 			`The data source received unexpected results after executing the program.
@@ -240,25 +354,14 @@ If the error is unclear, the output can be viewed by enabling Terraform's loggin
 				fmt.Sprintf("\nProgram: %s", cmd.Path)+
 				fmt.Sprintf("\nResult Error: %s", err),
 		)
-		return
+		return emptyMap, diag
 	}
 
-	config.Result, diags = types.MapValueFrom(ctx, types.StringType, result)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
+	from_result, from_diag := types.MapValueFrom(ctx, types.StringType, result)
+	if err != nil {
+		diag.Append(from_diag...)
+		return emptyMap, diag
 	}
 
-	config.ID = types.StringValue("-")
-
-	diags = resp.State.Set(ctx, config)
-	resp.Diagnostics.Append(diags...)
-}
-
-type externalDataSourceModelV0 struct {
-	Program    types.List   `tfsdk:"program"`
-	WorkingDir types.String `tfsdk:"working_dir"`
-	Query      types.Map    `tfsdk:"query"`
-	Result     types.Map    `tfsdk:"result"`
-	ID         types.String `tfsdk:"id"`
+	return from_result, nil
 }

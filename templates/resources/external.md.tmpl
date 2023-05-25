@@ -10,7 +10,12 @@ description: |-
 
 ## Example Usage
 
-{{ tffile "examples/data-sources/external.tf" }}
+#### Inline Bash
+{{ tffile "examples/resources/external/inline_bash/main.tf" }}
+
+#### Inline Ansible
+{{ tffile "examples/resources/external/inline_ansible/main.tf" }}
+{{ codefile "yaml" "examples/resources/external/inline_ansible/playbook.yml" }}
 
 ## External Program Protocol
 
@@ -34,19 +39,30 @@ program returns a non-zero status.
 All environment variables visible to the Terraform process are passed through
 to the child program.
 
-Terraform expects a data source to have *no observable side-effects*, and will
-re-run the program each time the state is refreshed.
-
 {{ .SchemaMarkdown | trimspace }}
 
 ## Processing JSON in shell scripts
 
-Since the external data source protocol uses JSON, it is recommended to use
+Since the external resource protocol uses JSON, it is recommended to use
 the utility [`jq`](https://stedolan.github.io/jq/) to translate to and from
-JSON in a robust way when implementing a data source in a shell scripting
+JSON in a robust way when implementing a resource in a shell scripting
 language.
 
 The following example shows some input/output boilerplate code for a
-data source implemented in bash:
+resource implemented in bash:
 
-{{ codefile "shell" "examples/json-processing.sh" }}
+{{ tffile "examples/resources/external/run_bash/main.tf" }}
+{{ codefile "shell" "examples/resources/external/run_bash/run.sh" }}
+
+## Processing JSON with ansible playbooks
+Since the external resource protocol uses JSON, it is recommended to use
+the [`posix collection's json_callback`](https://docs.ansible.com/ansible/latest/collections/ansible/posix/json_callback.html).
+
+{{ tffile "examples/resources/external/run_ansible/main.tf" }}
+{{ codefile "yaml" "examples/resources/external/run_ansible/playbook.yml" }}
+{{ codefile "shell" "examples/resources/external/run_ansible/run.sh" }}
+{{ codefile "shell" "examples/resources/external/run_ansible/run_base64.sh" }}
+
+
+## JSON Processing example:
+{{ codefile "shell" "examples/resources/external/json_processing.sh" }}

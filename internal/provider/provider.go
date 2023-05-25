@@ -10,28 +10,27 @@ import (
 
 var _ provider.Provider = (*externalProvider)(nil)
 
+type externalProvider struct{}
+
 func New() provider.Provider {
 	return &externalProvider{}
 }
 
-type externalProvider struct{}
-
 func (p *externalProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "external"
+	resp.TypeName = "toolbox"
 }
 
 func (p *externalProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-
 }
 
 func (p *externalProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource{
-		NewExternalDataSource,
-	}
+	return []func() datasource.DataSource{}
 }
 
 func (p *externalProvider) Resources(ctx context.Context) []func() resource.Resource {
-	return nil
+	return []func() resource.Resource{
+		NewExternalResource,
+	}
 }
 
 func (p *externalProvider) Schema(context.Context, provider.SchemaRequest, *provider.SchemaResponse) {

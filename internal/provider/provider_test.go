@@ -9,15 +9,15 @@ import (
 
 func protoV5ProviderFactories() map[string]func() (tfprotov5.ProviderServer, error) {
 	return map[string]func() (tfprotov5.ProviderServer, error){
-		"external": providerserver.NewProtocol5WithError(New()),
+		"toolbox": providerserver.NewProtocol5WithError(New()),
 	}
 }
 
-func providerVersion223() map[string]resource.ExternalProvider {
+func providerVersion() map[string]resource.ExternalProvider {
 	return map[string]resource.ExternalProvider{
-		"external": {
-			VersionConstraint: "2.2.3",
-			Source:            "hashicorp/external",
+		"toolbox": {
+			VersionConstraint: "0.0.13",
+			Source:            "bryan-bar/toolbox",
 		},
 	}
 }

@@ -11,10 +11,8 @@ The external provider is a special provider that exists to provide an interface 
 
 ## Documentation, questions and discussions
 Official documentation on how to use this provider can be found on the
-[Terraform Registry](https://registry.terraform.io/providers/hashicorp/external/latest/docs).
-In case of specific questions or discussions, please use the
-HashiCorp [Terraform Providers Discuss forums](https://discuss.hashicorp.com/c/terraform-providers/31),
-in accordance with HashiCorp [Community Guidelines](https://www.hashicorp.com/community-guidelines).
+[Terraform Registry](https://registry.terraform.io/providers/bryan-bar/external/latest/docs).
+In case of specific questions or discussions or issues, please raise an issue on github.
 
 We also provide:
 
@@ -26,15 +24,13 @@ We also provide:
 Compatibility table between this provider, the [Terraform Plugin Protocol](https://www.terraform.io/plugin/how-terraform-works#terraform-plugin-protocol)
 version it implements, and Terraform:
 
-| External Provider | Terraform Plugin Protocol | Terraform |
-|:-----------------:|:-------------------------:|:---------:|
-|    `>= 2.0.x`     |            `5`            | `>= 0.12` |
-|    `>= 1.1.x`     |        `4` and `5`        | `>= 0.12` |
-|    `<= 1.x.x`     |            `4`            | `<= 0.12` |
+| External Provider | Terraform Plugin Protocol | Terraform |   Golang  |
+|:-----------------:|:-------------------------:|:---------:|:---------:|
+|    `>= 0.0.1`     |            `6`            | `>= 1.3.6`| `>= 1.19` |
 
 Details can be found querying the [Registry API](https://www.terraform.io/internals/provider-registry-protocol#list-available-versions)
 that return all the details about which version are currently available for a particular provider.
-[Here](https://registry.terraform.io/v1/providers/hashicorp/external/versions) are the details for Time (JSON response).
+[Here](https://registry.terraform.io/v1/providers/bryan-bar/toolbox/versions) are the details for Time (JSON response).
 
 
 ## Development
