@@ -21,7 +21,7 @@ const (
 )
 
 const testResourceConfig_basic = `
-data "external" "test" {
+resource "toolbox_external" "test" {
   program = ["%s", "cheese"]
 
   query = {
@@ -30,11 +30,11 @@ data "external" "test" {
 }
 
 output "query_value" {
-  value = "${data.external.test.result["query_value"]}"
+  value = "${toolbox_external.test.result["query_value"]}"
 }
 
 output "argument" {
-  value = "${data.external.test.result["argument"]}"
+  value = "${toolbox_external.test.result["argument"]}"
 }
 `
 
@@ -51,7 +51,7 @@ func TestResource_basic(t *testing.T) {
 			{
 				Config: fmt.Sprintf(testResourceConfig_basic, programPath),
 				Check: func(s *terraform.State) error {
-					_, ok := s.RootModule().Resources["data.external.test"]
+					_, ok := s.RootModule().Resources["toolbox_external.test"]
 					if !ok {
 						return fmt.Errorf("missing data resource")
 					}
@@ -86,7 +86,7 @@ func TestResource_basic(t *testing.T) {
 }
 
 const testResourceConfig_error = `
-data "external" "test" {
+resource "toolbox_external" "test" {
   program = ["%s"]
 
   query = {
@@ -120,7 +120,7 @@ func TestResource_Program_OnlyEmptyString(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: `
-					data "external" "test" {
+					resource "toolbox_external" "test" {
 						program = [
 							"", # e.g. a variable that became empty
 						]
@@ -149,7 +149,7 @@ func TestResource_Program_PathAndEmptyString(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: fmt.Sprintf(`
-					data "external" "test" {
+					resource "toolbox_external" "test" {
 						program = [
 							%[1]q,
 							"", # e.g. a variable that became empty
@@ -161,7 +161,7 @@ func TestResource_Program_PathAndEmptyString(t *testing.T) {
 					}
 				`, programPath),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.external.test", "result.query_value", "valuetest"),
+					resource.TestCheckResourceAttr("toolbox_external.test", "result.query_value", "valuetest"),
 				),
 			},
 		},
@@ -174,7 +174,7 @@ func TestResource_Program_EmptyStringAndNullValues(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: `
-					data "external" "test" {
+					resource "toolbox_external" "test" {
 						program = [
 							null, "", # e.g. a variable that became empty
 						]
@@ -202,7 +202,7 @@ func TestResource_Query_NullAndEmptyValue(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: fmt.Sprintf(`
-					data "external" "test" {
+					resource "toolbox_external" "test" {
 						program = [%[1]q]
 				
 						query = {
@@ -212,8 +212,8 @@ func TestResource_Query_NullAndEmptyValue(t *testing.T) {
 					}
 				`, programPath),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.external.test", "result.value", ""),
-					resource.TestCheckResourceAttr("data.external.test", "result.value2", ""),
+					resource.TestCheckResourceAttr("toolbox_external.test", "result.value", ""),
+					resource.TestCheckResourceAttr("toolbox_external.test", "result.value2", ""),
 				),
 			},
 		},
@@ -230,12 +230,12 @@ func TestResource_upgrade(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		Steps: []resource.TestStep{
 			{
-				ExternalProviders: providerVersion223(),
+				ExternalProviders: providerVersion(),
 				Config:            fmt.Sprintf(testResourceConfig_basic, programPath),
 				Check: func(s *terraform.State) error {
-					_, ok := s.RootModule().Resources["data.external.test"]
+					_, ok := s.RootModule().Resources["toolbox_external.test"]
 					if !ok {
-						return fmt.Errorf("missing data resource")
+						return fmt.Errorf("missing resource")
 					}
 
 					outputs := s.RootModule().Outputs
@@ -272,9 +272,9 @@ func TestResource_upgrade(t *testing.T) {
 				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				Config:                   fmt.Sprintf(testResourceConfig_basic, programPath),
 				Check: func(s *terraform.State) error {
-					_, ok := s.RootModule().Resources["data.external.test"]
+					_, ok := s.RootModule().Resources["toolbox_external.test"]
 					if !ok {
-						return fmt.Errorf("missing data resource")
+						return fmt.Errorf("missing resource")
 					}
 
 					outputs := s.RootModule().Outputs
@@ -343,7 +343,7 @@ func TestResource_20MinuteTimeout(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: `
-					data "external" "test" {
+					resource "toolbox_external" "test" {
 						program = ["sleep", "1205"] # over 20 minutes
 					}
 				`,
