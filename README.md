@@ -1,17 +1,26 @@
-# Terraform Provider: External
+# Terraform Provider: Toolbox
 
-The external provider is a special provider that exists to provide an interface between Terraform and external programs. Using this provider, it is possible to write separate programs that can participate in the Terraform workflow by implementing a specific protocol.
+The Toolbox provider is a provider that provides an interface between Terraform and external programs. Using this provider, it is possible to write separate programs that can participate in the Terraform lifecycle by implementing a specific protocol(shell/python/binaries/ansible/cli-tools). This provider is for last resort and existing providers should be preferred as external programs escape the lifecycle and can depend on the environment.
+
+Uses:
+* Allow execution of external programs during Terraform's lifecycle.
+* Allow external program data to be returned back into the Terraform lifecycle.
+
+Limitations with existing solutions:
+* External Provider - Uses a data source which executes during all stages and should not perform actions which will cause side-effects.
+* remote-exec and local-exec provisioner - Commands cannot return data back into the terraform lifecycle so workarounds are commonly used such as exporting a file within the provisioner for further use/state.
+* cloud-init - Final state from bootstrap is not returned back into terraform and might be needed such as volumes which can be out of order or renamed by providers unless formatted/mounted.
 
 ## Requirements
 
 * [Terraform](https://www.terraform.io/downloads)
-* [Go](https://go.dev/doc/install) (1.18)
+* [Go](https://go.dev/doc/install) (1.19)
 * [GNU Make](https://www.gnu.org/software/make/)
 * [golangci-lint](https://golangci-lint.run/usage/install/#local-installation) (optional)
 
 ## Documentation, questions and discussions
 Official documentation on how to use this provider can be found on the
-[Terraform Registry](https://registry.terraform.io/providers/EnterpriseDB/external/latest/docs).
+[Terraform Registry](https://registry.terraform.io/providers/EnterpriseDB/toolbox/latest/docs).
 In case of specific questions or discussions or issues, please raise an issue on github.
 
 We also provide:
@@ -24,9 +33,9 @@ We also provide:
 Compatibility table between this provider, the [Terraform Plugin Protocol](https://www.terraform.io/plugin/how-terraform-works#terraform-plugin-protocol)
 version it implements, and Terraform:
 
-| External Provider | Terraform Plugin Protocol | Terraform |   Golang  |
+| Toolbox Provider | Terraform Plugin Protocol | Terraform |   Golang  |
 |:-----------------:|:-------------------------:|:---------:|:---------:|
-|    `>= 0.0.1`     |            `6`            | `>= 1.3.6`| `>= 1.19` |
+|    `>= 0.1.1`     |            `6`            | `>= 1.3.6`| `>= 1.19` |
 
 Details can be found querying the [Registry API](https://www.terraform.io/internals/provider-registry-protocol#list-available-versions)
 that return all the details about which version are currently available for a particular provider.

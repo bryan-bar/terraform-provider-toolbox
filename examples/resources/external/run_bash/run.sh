@@ -3,7 +3,7 @@
 # Exit if any of the intermediate steps fail
 set -e
 
-# Handle stdin from Terraform "external" data source
+# Handle stdin from Terraform "toolbox_external" resource
 # A parameter "query" of type map(string) is passed to stdin
 # In order to control the expected output, parameters use base64 encoding
 # ex: query = {

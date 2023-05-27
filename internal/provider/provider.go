@@ -8,30 +8,30 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 )
 
-var _ provider.Provider = (*externalProvider)(nil)
+var _ provider.Provider = (*toolboxProvider)(nil)
 
-type externalProvider struct{}
+type toolboxProvider struct{}
 
 func New() provider.Provider {
-	return &externalProvider{}
+	return &toolboxProvider{}
 }
 
-func (p *externalProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
+func (p *toolboxProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
 	resp.TypeName = "toolbox"
 }
 
-func (p *externalProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
+func (p *toolboxProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
 }
 
-func (p *externalProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
+func (p *toolboxProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{}
 }
 
-func (p *externalProvider) Resources(ctx context.Context) []func() resource.Resource {
+func (p *toolboxProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewExternalResource,
 	}
 }
 
-func (p *externalProvider) Schema(context.Context, provider.SchemaRequest, *provider.SchemaResponse) {
+func (p *toolboxProvider) Schema(context.Context, provider.SchemaRequest, *provider.SchemaResponse) {
 }

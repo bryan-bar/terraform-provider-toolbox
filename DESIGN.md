@@ -1,6 +1,6 @@
-# External Provider Design
+# ToolboxProvider Design
 
- The External Provider allows external programs to interact with Terraform by implementing a specific protocol. 
+ The Toolbox Provider allows external programs to interact with Terraform by implementing a specific protocol. 
 
 Below we have a collection of _Goals_ and _Patterns_: they represent the guiding principles applied during the
 development of this provider. Some are in place, others are ongoing processes, others are still just inspirational.
@@ -18,7 +18,7 @@ development of this provider. Some are in place, others are ongoing processes, o
 
 Specific to this provider:
 
-* The data source/resource protocol uses JSON objects to communicate between the provider and the external program.
+* The resource protocol uses JSON objects to communicate between the provider and the external program.
 
 General to development:
 
