@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     toolbox = {
-      source = "EnterpriseDB/toolbox"
+      source = "bryan-bar/toolbox"
     }
   }
 }

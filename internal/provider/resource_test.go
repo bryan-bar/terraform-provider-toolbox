@@ -310,7 +310,7 @@ func buildResourceTestProgram() (string, error) {
 	// We have a simple Go program that we use as a stub for testing.
 	cmd := exec.Command(
 		"go", "install",
-		"github.com/EnterpriseDB/terraform-provider-toolbox/internal/provider/test-programs/tf-acc-external-resource",
+		"github.com/bryan-bar/terraform-provider-toolbox/internal/provider/test-programs/tf-acc-external-resource",
 	)
 	err := cmd.Run()
 
