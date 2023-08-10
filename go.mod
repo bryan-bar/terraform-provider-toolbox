@@ -1,6 +1,6 @@
 module github.com/EnterpriseDB/terraform-provider-toolbox
 
-go 1.19
+go 1.20
 
 require (
 	github.com/hashicorp/terraform-plugin-docs v0.16.0

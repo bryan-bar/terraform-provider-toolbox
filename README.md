@@ -35,7 +35,7 @@ version it implements, and Terraform:
 
 | Toolbox Provider | Terraform Plugin Protocol | Terraform |   Golang  |
 |:-----------------:|:-------------------------:|:---------:|:---------:|
-|    `>= 0.1.1`     |            `6`            | `>= 1.3.6`| `>= 1.19` |
+|    `>= 0.1.1`     |            `6`            | `>= 1.3.6`| `>= 1.20` |
 
 Details can be found querying the [Registry API](https://www.terraform.io/internals/provider-registry-protocol#list-available-versions)
 that return all the details about which version are currently available for a particular provider.
