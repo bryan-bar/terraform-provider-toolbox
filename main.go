@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 
-	"github.com/EnterpriseDB/terraform-provider-toolbox/internal/provider"
+	"github.com/bryan-bar/terraform-provider-toolbox/internal/provider"
 )
 
 // Generate the Terraform provider documentation using `tfplugindocs`:
@@ -20,7 +20,7 @@ func main() {
 	flag.Parse()
 
 	err := providerserver.Serve(context.Background(), provider.New, providerserver.ServeOpts{
-		Address:         "registry.terraform.io/EnterpriseDB/toolbox",
+		Address:         "registry.terraform.io/bryan-bar/toolbox",
 		Debug:           debug,
 		ProtocolVersion: 6,
 	})
