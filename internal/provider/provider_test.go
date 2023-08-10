@@ -17,7 +17,7 @@ func providerVersion() map[string]resource.ExternalProvider {
 	return map[string]resource.ExternalProvider{
 		"toolbox": {
 			VersionConstraint: "0.1.3",
-			Source:            "EnterpriseDB/toolbox",
+			Source:            "bryan-bar/toolbox",
 		},
 	}
 }

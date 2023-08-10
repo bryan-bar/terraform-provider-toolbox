@@ -42,7 +42,7 @@ version it implements, and Terraform:
 
 ## Documentation, questions and discussions
 Official documentation on how to use this provider can be found on the
-[Terraform Registry](https://registry.terraform.io/providers/EnterpriseDB/toolbox/latest/docs).
+[Terraform Registry](https://registry.terraform.io/providers/bryan-bar/toolbox/latest/docs).
 In case of specific questions or discussions or issues, please raise an issue on github.
 
 We also provide:
@@ -52,7 +52,7 @@ We also provide:
 
 Details can be found querying the [Registry API](https://www.terraform.io/internals/provider-registry-protocol#list-available-versions)
 that return all the details about which version are currently available for a particular provider.
-[Here](https://registry.terraform.io/v1/providers/EnterpriseDB/toolbox/versions) are the details for Time (JSON response).
+[Here](https://registry.terraform.io/v1/providers/bryan-bar/toolbox/versions) are the details for Time (JSON response).
 
 
 ## Development
