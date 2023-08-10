@@ -46,7 +46,7 @@ func TestResource_basic(t *testing.T) {
 	}
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
 				Config: fmt.Sprintf(testResourceConfig_basic, programPath),
@@ -103,7 +103,7 @@ func TestResource_error(t *testing.T) {
 	}
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
 				Config:      fmt.Sprintf(testResourceConfig_error, programPath),
@@ -116,7 +116,7 @@ func TestResource_error(t *testing.T) {
 // Reference: https://github.com/hashicorp/terraform-provider-external/issues/110
 func TestResource_Program_OnlyEmptyString(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
 				Config: `
@@ -145,7 +145,7 @@ func TestResource_Program_PathAndEmptyString(t *testing.T) {
 	}
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
 				Config: fmt.Sprintf(`
@@ -170,7 +170,7 @@ func TestResource_Program_PathAndEmptyString(t *testing.T) {
 
 func TestResource_Program_EmptyStringAndNullValues(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
 				Config: `
@@ -198,7 +198,7 @@ func TestResource_Query_NullAndEmptyValue(t *testing.T) {
 	}
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
 				Config: fmt.Sprintf(`
@@ -264,12 +264,12 @@ func TestResource_upgrade(t *testing.T) {
 				},
 			},
 			{
-				ProtoV5ProviderFactories: protoV5ProviderFactories(),
+				ProtoV6ProviderFactories: protoV6ProviderFactories(),
 				Config:                   fmt.Sprintf(testResourceConfig_basic, programPath),
 				PlanOnly:                 true,
 			},
 			{
-				ProtoV5ProviderFactories: protoV5ProviderFactories(),
+				ProtoV6ProviderFactories: protoV6ProviderFactories(),
 				Config:                   fmt.Sprintf(testResourceConfig_basic, programPath),
 				Check: func(s *terraform.State) error {
 					_, ok := s.RootModule().Resources["toolbox_external.test"]
@@ -339,7 +339,7 @@ func TestResource_20MinuteTimeout(t *testing.T) {
 	}
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
 				Config: `
