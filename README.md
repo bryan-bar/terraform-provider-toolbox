@@ -1,20 +1,42 @@
 # Terraform Provider: Toolbox
 
-The Toolbox provider is a provider that provides an interface between Terraform and external programs. Using this provider, it is possible to write separate programs that can participate in the Terraform lifecycle by implementing a specific protocol(shell/python/binaries/ansible/cli-tools). This provider is for last resort and existing providers should be preferred as external programs escape the lifecycle and can depend on the environment.
+The `Toolbox` provider is a provider that provides an interface between Terraform and external programs.
+Using this provider, it is possible to write separate programs that can participate in the Terraform lifecycle by implementing a specific protocol.
+This provider is for last resort and existing providers should be preferred as external programs escape the lifecycle and can depend on the environment.
+[Issue #610 (opened - 2014/11/27) (closed - 2022/10/29) - capture output of provisioners into variables](https://github.com/hashicorp/terraform/issues/610)
+[Issue #5 (opened - 2017/07/19) - External resource provider](https://github.com/hashicorp/terraform-provider-external/issues/5)
 
 Uses:
 * Allow execution of external programs during Terraform's lifecycle.
+  * Direct CLI/API calls instead of relying on the provider to handle all cases.
+  * Ansible playbooks to bootstrap a system after all resources are created/attached.
+  * Execution of existing scripts/executables instead of creating a provider.
 * Allow external program data to be returned back into the Terraform lifecycle.
+  * Additional volume's UUID after formatting for tracking
 
-Limitations with existing solutions:
-* External Provider - Uses a data source which executes during all stages and should not perform actions which will cause side-effects.
-* remote-exec and local-exec provisioner - Commands cannot return data back into the terraform lifecycle so workarounds are commonly used such as exporting a file within the provisioner for further use/state.
-* cloud-init - Final state from bootstrap is not returned back into terraform and might be needed such as volumes which can be out of order or renamed by providers unless formatted/mounted.
+Alternative Solutions:
+* [External provider](https://registry.terraform.io/providers/hashicorp/external/latest/docs) - Data source which allows for external program execution and exposes output for use in a terraform (expects no side-effects as it will execute with every terraform run)
+* [remote-exec provisioner](https://developer.hashicorp.com/terraform/language/resources/provisioners/remote-exec) - Remote executable defined within a resource and executed after resource is created (requires temp files to read ouput back into terraform).
+* [local-exec provisioner](https://developer.hashicorp.com/terraform/language/resources/provisioners/local-exec) - Local executable defined within a resource and executed after a resource is created (requires temp files to read ouput back into terraform).
+* [cloudinit provider](https://registry.terraform.io/providers/hashicorp/cloudinit/latest/docs) - Cloud-Init configuration to override defaults from a resources used image.
+* [external shell module](https://registry.terraform.io/modules/Invicton-Labs/shell-resource/external/latest) - Execute an external program on the local instance and expose output for use in terraform (temp files needed to read final output)
+* [SSH provider](https://registry.terraform.io/providers/loafoe/ssh/latest/docs) - Execute an external program on a remote instance and expose the output for use in terraform.
+* [shell provider](https://registry.terraform.io/providers/scottwinkler/shell/latest/docs) - Execute an external program on the local instance and expose the output for use in terraform.
+* [restapi provider](https://registry.terraform.io/providers/Mastercard/restapi/latest/docs) - Use of a rest api within the terraform lifecycle.
+
+## Compatibility
+
+Compatibility table between this provider, the [Terraform Plugin Protocol](https://www.terraform.io/plugin/how-terraform-works#terraform-plugin-protocol)
+version it implements, and Terraform:
+
+| Toolbox Provider | Terraform Plugin Protocol | Terraform |   Golang  |
+|:-----------------:|:-------------------------:|:---------:|:---------:|
+|    `>= 0.1.3`     |            `6`            | `>= 1.3.6`| `>= 1.20` |
 
 ## Requirements
 
 * [Terraform](https://www.terraform.io/downloads)
-* [Go](https://go.dev/doc/install) (1.19)
+* [Go](https://go.dev/doc/install)
 * [GNU Make](https://www.gnu.org/software/make/)
 * [golangci-lint](https://golangci-lint.run/usage/install/#local-installation) (optional)
 
@@ -27,15 +49,6 @@ We also provide:
 
 * [Support](.github/SUPPORT.md) page for help when using the provider
 * [Contributing](.github/CONTRIBUTING.md) guidelines in case you want to help this project
-
-## Compatibility
-
-Compatibility table between this provider, the [Terraform Plugin Protocol](https://www.terraform.io/plugin/how-terraform-works#terraform-plugin-protocol)
-version it implements, and Terraform:
-
-| Toolbox Provider | Terraform Plugin Protocol | Terraform |   Golang  |
-|:-----------------:|:-------------------------:|:---------:|:---------:|
-|    `>= 0.1.2`     |            `6`            | `>= 1.3.6`| `>= 1.20` |
 
 Details can be found querying the [Registry API](https://www.terraform.io/internals/provider-registry-protocol#list-available-versions)
 that return all the details about which version are currently available for a particular provider.
