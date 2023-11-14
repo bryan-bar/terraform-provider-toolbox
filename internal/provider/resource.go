@@ -61,7 +61,7 @@ func (e *externalResource) Schema(ctx context.Context, req resource.SchemaReques
 			"systems.\n" +
 			"\n" +
 			"**Warning** Terraform Enterprise does not guarantee availability of any particular language runtimes " +
-			"or external programs beyond standard shell utilities, so it is not recommended to use this data source " +
+			"or external programs beyond standard shell utilities, so it is not recommended to use this resource " +
 			"within configurations that are applied within Terraform Enterprise.",
 
 		Attributes: map[string]schema.Attribute{
@@ -246,7 +246,7 @@ func run_external(ctx context.Context, program []types.String, query map[string]
 	if len(filteredProgram) == 0 {
 		diag.AddAttributeError(path.Root("program"),
 			"External Program Missing",
-			"The data source was configured without a program to execute. Verify the configuration contains at least one non-empty value.",
+			"The resource was configured without a program to execute. Verify the configuration contains at least one non-empty value.",
 		)
 		return emptyMap, diag
 	}
@@ -261,7 +261,7 @@ func run_external(ctx context.Context, program []types.String, query map[string]
 		diag.AddAttributeError(
 			path.Root("query"),
 			"Query Handling Failed",
-			"The data source received an unexpected error while attempting to parse the query. "+
+			"The resource received an unexpected error while attempting to parse the query. "+
 				"This is always a bug in the external provider code and should be reported to the provider developers."+
 				fmt.Sprintf("\n\nError: %s", err),
 		)
@@ -276,8 +276,8 @@ func run_external(ctx context.Context, program []types.String, query map[string]
 		diag.AddAttributeError(
 			path.Root("program"),
 			"External Program Lookup Failed",
-			"The data source received an unexpected error while attempting to parse the query. "+
-				`The data source received an unexpected error while attempting to find the program.
+			"The resource received an unexpected error while attempting to parse the query. "+
+				`The resource received an unexpected error while attempting to find the program.
 
 The program must be accessible according to the platform where Terraform is running.
 
@@ -310,7 +310,7 @@ The program must also be executable according to the platform where Terraform is
 				diag.AddAttributeError(
 					path.Root("program"),
 					"External Program Execution Failed",
-					"The data source received an unexpected error while attempting to execute the program."+
+					"The resource received an unexpected error while attempting to execute the program."+
 						fmt.Sprintf("\n\nProgram: %s", cmd.Path)+
 						fmt.Sprintf("\nError Message: %s", string(exitErr.Stderr))+
 						fmt.Sprintf("\nState: %s", err),
@@ -321,7 +321,7 @@ The program must also be executable according to the platform where Terraform is
 			diag.AddAttributeError(
 				path.Root("program"),
 				"External Program Execution Failed",
-				"The data source received an unexpected error while attempting to execute the program.\n\n"+
+				"The resource received an unexpected error while attempting to execute the program.\n\n"+
 					"The program was executed, however it returned no additional error messaging."+
 					fmt.Sprintf("\n\nProgram: %s", cmd.Path)+
 					fmt.Sprintf("\nState: %s", err),
@@ -332,7 +332,7 @@ The program must also be executable according to the platform where Terraform is
 		diag.AddAttributeError(
 			path.Root("program"),
 			"External Program Execution Failed",
-			"The data source received an unexpected error while attempting to execute the program."+
+			"The resource received an unexpected error while attempting to execute the program."+
 				fmt.Sprintf("\n\nProgram: %s", cmd.Path)+
 				fmt.Sprintf("\nError: %s", err),
 		)
@@ -345,7 +345,7 @@ The program must also be executable according to the platform where Terraform is
 		diag.AddAttributeError(
 			path.Root("program"),
 			"Unexpected External Program Results",
-			`The data source received unexpected results after executing the program.
+			`The resource received unexpected results after executing the program.
 
 Program output must be a JSON encoded map of string keys and string values.
 
