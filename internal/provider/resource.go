@@ -28,6 +28,8 @@ type externalResource struct{}
 type externalResourceModelV0 struct {
 	Program    types.List   `tfsdk:"program"`
 	Create     types.Bool   `tfsdk:"create"`
+	Read       types.Bool   `tfsdk:"read"`
+	Update     types.Bool   `tfsdk:"update"`
 	Destroy    types.Bool   `tfsdk:"destroy"`
 	WorkingDir types.String `tfsdk:"working_dir"`
 	Query      types.Map    `tfsdk:"query"`
@@ -90,6 +92,26 @@ func (e *externalResource) Schema(ctx context.Context, req resource.SchemaReques
 				},
 			},
 
+			"read": schema.BoolAttribute{
+				Description: "Run on read: disabled by default",
+				Optional:    true,
+				Default:     booldefault.StaticBool(false),
+				Computed:    true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplaceIfConfigured(),
+				},
+			},
+
+			"update": schema.BoolAttribute{
+				Description: "Run on update: disabled by default",
+				Optional:    true,
+				Default:     booldefault.StaticBool(false),
+				Computed:    true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplaceIfConfigured(),
+				},
+			},
+
 			"destroy": schema.BoolAttribute{
 				Description: "Run on destroy: disabled by default",
 				Optional:    true,
@@ -99,6 +121,7 @@ func (e *externalResource) Schema(ctx context.Context, req resource.SchemaReques
 					boolplanmodifier.RequiresReplaceIfConfigured(),
 				},
 			},
+
 			"working_dir": schema.StringAttribute{
 				Description: "Working directory of the program. If not supplied, the program will run " +
 					"in the current directory.",
@@ -155,7 +178,6 @@ func (e *externalResource) Create(ctx context.Context, req resource.CreateReques
 	}
 
 	var query map[string]types.String
-
 	diags = config.Query.ElementsAs(ctx, &query, false)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -178,12 +200,29 @@ func (e *externalResource) Create(ctx context.Context, req resource.CreateReques
 }
 
 func (e *externalResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	tflog.Trace(ctx, "Updating resource")
+	var config externalResourceModelV0
+	
+	// Read Terraform state
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &config)...)
+	
+	// Set Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }
 
 func (e *externalResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	tflog.Trace(ctx, "Reading resource")
+	var config externalResourceModelV0
+
+	// Read Terraform state
+	resp.Diagnostics.Append(req.State.Get(ctx, &config)...)
+
+	// Set Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }
 
 func (e *externalResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	tflog.Trace(ctx, "Deleting resource")
 	var config externalResourceModelV0
 	// Read Terraform plan
 	resp.Diagnostics.Append(req.State.Get(ctx, &config)...)
