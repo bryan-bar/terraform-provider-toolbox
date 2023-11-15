@@ -169,24 +169,7 @@ func (e *externalResource) Create(ctx context.Context, req resource.CreateReques
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &config)...)
 	config.ID = types.StringValue("-")
 
-	var program []types.String
-
-	diags = config.Program.ElementsAs(ctx, &program, false)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	var query map[string]types.String
-	diags = config.Query.ElementsAs(ctx, &query, false)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	workingDir := config.WorkingDir.ValueString()
-
-	result, errors := run_external(ctx, program, query, workingDir, config.Create.ValueBool())
+	result, errors := run_external(ctx, config, config.Create.ValueBool(), "create")
 
 	if errors != nil {
 		resp.Diagnostics.Append(errors...)
@@ -234,25 +217,7 @@ func (e *externalResource) Delete(ctx context.Context, req resource.DeleteReques
 		return
 	}
 
-	var program []types.String
-
-	diags = config.Program.ElementsAs(ctx, &program, false)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	var query map[string]types.String
-
-	diags = config.Query.ElementsAs(ctx, &query, false)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	workingDir := config.WorkingDir.ValueString()
-
-	result, errors := run_external(ctx, program, query, workingDir, config.Destroy.ValueBool())
+	result, errors := run_external(ctx, config, config.Destroy.ValueBool(), "destroy")
 
 	if errors != nil {
 		resp.Diagnostics.Append(errors...)
@@ -262,18 +227,22 @@ func (e *externalResource) Delete(ctx context.Context, req resource.DeleteReques
 	resp.Diagnostics.Append(diags...)
 }
 
-func run_external(ctx context.Context, program []types.String, query map[string]types.String, workingDir string, execute bool) (types.Map, diag.Diagnostics) {
+func run_external(ctx context.Context, config externalResourceModelV0, execute bool, stage string) (types.Map, diag.Diagnostics) {
 
 	var diag diag.Diagnostics
+
 	//initMap := make(map[string]string)
 	initMap := map[string]string{}
 	emptyMap, _ := types.MapValueFrom(ctx, types.StringType, initMap)
-	filteredProgram := make([]string, 0, len(program))
 
-	if !execute {
-		return emptyMap, nil
+	// Setup program variable
+	// Grab program list and filter out empty/null values
+	var program []types.String
+	diag = config.Program.ElementsAs(ctx, &program, false)
+	if diag.HasError() {
+		return emptyMap, diag
 	}
-
+	filteredProgram := make([]string, 0, len(program))
 	for _, programArgRaw := range program {
 		if programArgRaw.IsNull() || programArgRaw.ValueString() == "" {
 			continue
@@ -281,7 +250,6 @@ func run_external(ctx context.Context, program []types.String, query map[string]
 
 		filteredProgram = append(filteredProgram, programArgRaw.ValueString())
 	}
-
 	if len(filteredProgram) == 0 {
 		diag.AddAttributeError(path.Root("program"),
 			"External Program Missing",
@@ -289,27 +257,9 @@ func run_external(ctx context.Context, program []types.String, query map[string]
 		)
 		return emptyMap, diag
 	}
-
-	filteredQuery := make(map[string]string)
-	for key, value := range query {
-		filteredQuery[key] = value.ValueString()
-	}
-
-	queryJson, err := json.Marshal(filteredQuery)
-	if err != nil {
-		diag.AddAttributeError(
-			path.Root("query"),
-			"Query Handling Failed",
-			"The resource received an unexpected error while attempting to parse the query. "+
-				"This is always a bug in the external provider code and should be reported to the provider developers."+
-				fmt.Sprintf("\n\nError: %s", err),
-		)
-		return emptyMap, diag
-	}
-
 	// first element is assumed to be an executable command, possibly found
 	// using the PATH environment variable.
-	_, err = exec.LookPath(filteredProgram[0])
+	_, err := exec.LookPath(filteredProgram[0])
 
 	if err != nil {
 		diag.AddAttributeError(
@@ -331,6 +281,43 @@ The program must also be executable according to the platform where Terraform is
 				fmt.Sprintf("\nError: %s", err),
 		)
 		return emptyMap, diag
+	}
+
+	// Setup query variable
+	// Grab query mapping and setup "stage" key
+	var query map[string]types.String
+	diag = config.Query.ElementsAs(ctx, &query, false)
+	if diag.HasError() {
+		return emptyMap, diag
+	}
+	if query == nil {
+		query = make(map[string]types.String)
+	}
+	query["stage"] = types.StringValue(stage)
+	filteredQuery := make(map[string]string)
+	for key, value := range query {
+		filteredQuery[key] = value.ValueString()
+	}
+
+	queryJson, err := json.Marshal(filteredQuery)
+	if err != nil {
+		diag.AddAttributeError(
+			path.Root("query"),
+			"Query Handling Failed",
+			"The resource received an unexpected error while attempting to parse the query. "+
+				"This is always a bug in the external provider code and should be reported to the provider developers."+
+				fmt.Sprintf("\n\nError: %s", err),
+		)
+		return emptyMap, diag
+	}
+
+	// Setup working directory
+	workingDir := config.WorkingDir.ValueString()
+
+	// Check whether to execute the program
+	// Depending on stage, we need to return the previous result
+	if !execute {
+		return emptyMap, nil
 	}
 
 	cmd := exec.CommandContext(ctx, filteredProgram[0], filteredProgram[1:]...)

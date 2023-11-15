@@ -220,6 +220,45 @@ func TestResource_Query_NullAndEmptyValue(t *testing.T) {
 	})
 }
 
+/*
+Each resources "query" will have a "stage" attribute that will be set to one of the following values:
+- create
+- read
+- update
+- destroy
+*/
+func TestResource_Query_Stage(t *testing.T) {
+	programPath, err := buildResourceTestProgram()
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+					resource "toolbox_external" "test" {
+						create = true
+						destroy = false
+						update = false
+						read = false
+						program = [%[1]q]
+				
+						query = {
+							value = null,
+							value2 = ""
+						}
+					}
+				`, programPath),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("toolbox_external.test", "result.stage", "create"),
+				),
+			},
+		},
+	})
+}
+
 func TestResource_upgrade(t *testing.T) {
 	programPath, err := buildResourceTestProgram()
 	if err != nil {
