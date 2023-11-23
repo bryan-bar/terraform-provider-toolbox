@@ -20,18 +20,18 @@ func main() {
 		panic(err)
 	}
 
-	var query map[string]string
+	query := map[string]any{}
 	err = json.Unmarshal(queryBytes, &query)
 	if err != nil {
 		panic(err)
 	}
 
-	if query["fail"] != "" {
+	if query["fail"] == "true" {
 		fmt.Fprintf(os.Stderr, "I was asked to fail\n")
 		os.Exit(1)
 	}
 
-	var result = map[string]string{
+	var result = map[string]any{
 		"result":      "yes",
 		"query_value": query["value"],
 	}
@@ -41,6 +41,9 @@ func main() {
 	}
 
 	for queryKey, queryValue := range query {
+		if queryKey == "old_result" {
+			continue
+		}
 		result[queryKey] = queryValue
 	}
 

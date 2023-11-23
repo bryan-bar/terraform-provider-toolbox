@@ -32,7 +32,7 @@ version it implements, and Terraform:
 
 | Toolbox Provider | Terraform Plugin Protocol | Terraform |   Golang  |
 |:-----------------:|:-------------------------:|:---------:|:---------:|
-|    `>= 0.1.4`     |            `6`            | `>= 1.3.6`| `>= 1.20` |
+|    `>= 0.2.0`     |            `6`            | `>= 1.3.6`| `>= 1.20` |
 
 ## Requirements
 
