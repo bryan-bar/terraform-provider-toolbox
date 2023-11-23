@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
@@ -39,7 +40,7 @@ output "argument" {
 `
 
 func TestResource_basic(t *testing.T) {
-	programPath, err := buildResourceTestProgram()
+	programPath, err := buildGoTestProgram()
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -96,7 +97,7 @@ resource "toolbox_external" "test" {
 `
 
 func TestResource_error(t *testing.T) {
-	programPath, err := buildResourceTestProgram()
+	programPath, err := buildGoTestProgram()
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -138,7 +139,7 @@ func TestResource_Program_OnlyEmptyString(t *testing.T) {
 
 // Reference: https://github.com/hashicorp/terraform-provider-external/issues/110
 func TestResource_Program_PathAndEmptyString(t *testing.T) {
-	programPath, err := buildResourceTestProgram()
+	programPath, err := buildGoTestProgram()
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -191,7 +192,7 @@ func TestResource_Program_EmptyStringAndNullValues(t *testing.T) {
 }
 
 func TestResource_Query_NullAndEmptyValue(t *testing.T) {
-	programPath, err := buildResourceTestProgram()
+	programPath, err := buildGoTestProgram()
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -227,8 +228,8 @@ Each resources "query" will have a "stage" attribute that will be set to one of 
 - update
 - destroy
 */
-func TestResource_Query_Stage(t *testing.T) {
-	programPath, err := buildResourceTestProgram()
+func TestResource_Example(t *testing.T) {
+	programPath, err := buildGoTestProgram()
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -238,21 +239,169 @@ func TestResource_Query_Stage(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: fmt.Sprintf(`
-					resource "toolbox_external" "test" {
-						create = true
-						destroy = false
-						update = false
-						read = false
-						program = [%[1]q]
-				
-						query = {
-							value = null,
-							value2 = ""
+						resource "toolbox_external" "example" {
+							create = true
+							delete = true
+							update = true
+							read = true
+							program = [%[1]q]
+
+							recreate = {}
+							query = {
+								value = null,
+								value2 = ""
+							}
 						}
-					}
-				`, programPath),
+					`, programPath),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("toolbox_external.example", plancheck.ResourceActionCreate),
+					},
+					PostApplyPreRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("toolbox_external.example", plancheck.ResourceActionNoop),
+					},
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("toolbox_external.example", plancheck.ResourceActionNoop),
+					},
+				},
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("toolbox_external.test", "result.stage", "create"),
+					resource.TestCheckResourceAttrSet("toolbox_external.example", "stage"),
+					resource.TestCheckResourceAttr("toolbox_external.example", "stage", "create"),
+				),
+			},
+			{
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+				Config: fmt.Sprintf(`
+						resource "toolbox_external" "example" {
+							create = true
+							delete = true
+							update = true
+							read = true
+							program = [%[1]q]
+
+							recreate = {}
+							query = {
+								value = null,
+								value2 = ""
+							}
+						}
+					`, programPath),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{},
+					PostApplyPreRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("toolbox_external.example", plancheck.ResourceActionNoop),
+					},
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("toolbox_external.example", plancheck.ResourceActionNoop),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("toolbox_external.example", "stage"),
+					resource.TestCheckResourceAttr("toolbox_external.example", "stage", "read"),
+				),
+			},
+			{
+				Config: fmt.Sprintf(`
+						resource "toolbox_external" "example" {
+							create = true
+							delete = true
+							update = true
+							read = true
+							program = [%[1]q]
+
+							recreate = {}
+							query = {
+								value = null,
+								value2 = ""
+							}
+						}
+					`, programPath),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("toolbox_external.example", "stage"),
+					resource.TestCheckResourceAttr("toolbox_external.example", "stage", "read"),
+					resource.TestCheckResourceAttr("toolbox_external.example", "result.value2", ""),
+				),
+			},
+			{
+				Config: fmt.Sprintf(`
+						resource "toolbox_external" "example" {
+							create = true
+							delete = true
+							update = true
+							read = true
+							program = [%[1]q]
+							recreate = {foo: "bar"}
+							query = {
+								value = null,
+								value2 = ""
+							}
+						}
+					`, programPath),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("toolbox_external.example", plancheck.ResourceActionDestroyBeforeCreate),
+					},
+					PostApplyPreRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("toolbox_external.example", plancheck.ResourceActionNoop),
+					},
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("toolbox_external.example", plancheck.ResourceActionNoop),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("toolbox_external.example", "stage"),
+					resource.TestCheckResourceAttr("toolbox_external.example", "stage", "create"),
+					resource.TestCheckResourceAttr("toolbox_external.example", "result.value", ""),
+				),
+			},
+			{
+				Config: fmt.Sprintf(`
+						resource "toolbox_external" "example" {
+							create = true
+							delete = true
+							update = true
+							read = true
+							program = [%[1]q]
+							recreate = {foo: "bar"}
+							query = {
+								value = null,
+								value2 = "test"
+							}
+						}
+					`, programPath),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("toolbox_external.example", "stage"),
+					resource.TestCheckResourceAttr("toolbox_external.example", "stage", "update"),
+					resource.TestCheckResourceAttr("toolbox_external.example", "result.value2", "test"),
+				),
+			},
+			{
+				Destroy: true,
+				Config: fmt.Sprintf(`
+						resource "toolbox_external" "example" {
+							create = true
+							delete = true
+							update = true
+							read = true
+							program = [%[1]q]
+							recreate = {foo: "bar"}
+							query = {
+								value = null,
+								value2 = "test"
+							}
+						}
+					`, programPath),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("toolbox_external.example", plancheck.ResourceActionDestroy),
+					},
+					PostApplyPreRefresh:  []plancheck.PlanCheck{},
+					PostApplyPostRefresh: []plancheck.PlanCheck{},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("toolbox_external.example", "stage"),
+					resource.TestCheckResourceAttr("toolbox_external.example", "stage", "read"),
 				),
 			},
 		},
@@ -260,7 +409,7 @@ func TestResource_Query_Stage(t *testing.T) {
 }
 
 func TestResource_upgrade(t *testing.T) {
-	programPath, err := buildResourceTestProgram()
+	programPath, err := buildGoTestProgram()
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -345,7 +494,7 @@ func TestResource_upgrade(t *testing.T) {
 	})
 }
 
-func buildResourceTestProgram() (string, error) {
+func buildGoTestProgram() (string, error) {
 	// We have a simple Go program that we use as a stub for testing.
 	cmd := exec.Command(
 		"go", "install",
