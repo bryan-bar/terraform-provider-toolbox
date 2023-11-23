@@ -16,7 +16,7 @@ func protoV6ProviderFactories() map[string]func() (tfprotov6.ProviderServer, err
 func providerVersion() map[string]resource.ExternalProvider {
 	return map[string]resource.ExternalProvider{
 		"toolbox": {
-			VersionConstraint: "0.2.0",
+			VersionConstraint: "0.2.1",
 			Source:            "EnterpriseDB/toolbox",
 		},
 	}
