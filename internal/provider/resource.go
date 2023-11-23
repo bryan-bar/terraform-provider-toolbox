@@ -526,6 +526,13 @@ If the error is unclear, the output can be viewed by enabling Terraform's loggin
 	// Handle non-string values as stringified json
 	convertedResult := map[string]string{}
 	for key, value := range result {
+		if key == "old_result" {
+			diag.AddAttributeError(path.Root("result"),
+				"Reserved Result Key",
+				fmt.Sprintf("The resource was configured with a reserved result key that can cause nested duplicates: %s\nresult: %s\n", key, result),
+			)
+			return emptyMap, diag
+		}
 		switch value.(type) {
 		case string:
 			convertedResult[key] = value.(string)
