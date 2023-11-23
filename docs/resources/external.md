@@ -4,7 +4,7 @@ description: |-
   The external resource allows an external program implementing a specific protocol (defined below) to act as a resource, exposing arbitrary data for use elsewhere in the Terraform configuration.
   As of now, this resource will be re-created if any value is changed.Similar to null_resource combined with trigger but the output can be saved into our state.
   Warning This mechanism is provided as an "escape hatch" for exceptional situations where a first-class Terraform provider is not more appropriate. Its capabilities are limited in comparison to a true resource, and implementing a resource via an external program is likely to hurt the portability of your Terraform configuration by creating dependencies on external programs and libraries that may not be available (or may need to be used differently) on different operating systems.
-  Warning Terraform Enterprise does not guarantee availability of any particular language runtimes or external programs beyond standard shell utilities, so it is not recommended to use this data source within configurations that are applied within Terraform Enterprise.
+  Warning Terraform Enterprise does not guarantee availability of any particular language runtimes or external programs beyond standard shell utilities, so it is not recommended to use this resource within configurations that are applied within Terraform Enterprise.
 ---
 
 # toolbox_external
@@ -14,7 +14,7 @@ As of now, this resource will be re-created if any value is changed.Similar to n
 
 **Warning** This mechanism is provided as an "escape hatch" for exceptional situations where a first-class Terraform provider is not more appropriate. Its capabilities are limited in comparison to a true resource, and implementing a resource via an external program is likely to hurt the portability of your Terraform configuration by creating dependencies on external programs and libraries that may not be available (or may need to be used differently) on different operating systems.
 
-**Warning** Terraform Enterprise does not guarantee availability of any particular language runtimes or external programs beyond standard shell utilities, so it is not recommended to use this data source within configurations that are applied within Terraform Enterprise.
+**Warning** Terraform Enterprise does not guarantee availability of any particular language runtimes or external programs beyond standard shell utilities, so it is not recommended to use this resource within configurations that are applied within Terraform Enterprise.
 
 ## Example Usage
 
@@ -32,6 +32,33 @@ locals {
   mapped = {"one": "item1", "two": "item2"}
   listed = ["one", "item1", "two", "item2"]
   mixed = {"mapped": local.mapped, "listed": local.listed}
+}
+
+resource "toolbox_external" "basic" {
+  create = true
+  read = false
+  update = false
+  delete = false
+  // Recreate is used to force a destroy - create cycle
+  recreate = {
+    one = "two"
+  }
+  query = {
+    one = "two"
+  }
+  program = [
+    "bash",
+    "-c",
+    <<EOF
+      # query is passed to stdin as a JSON object and
+      # will contain the reserved keys "stage" and "old_result"
+      read input
+
+      # Return a json object to be stored in the result attribute
+      # "old_result" is not allowed to prevent duplicate old_result when passed back into query
+      printf '{"one":"two"}'
+    EOF
+  ]
 }
 
 resource "toolbox_external" "mapped" {
@@ -194,14 +221,18 @@ to the child program.
 ### Optional
 
 - `create` (Boolean) Run on create: enabled by default
-- `destroy` (Boolean) Run on destroy: disabled by default
+- `delete` (Boolean) Run on delete: disabled by default
 - `query` (Map of String) A map of string values to pass to the external program as the query arguments. If not supplied, the program will receive an empty object as its input.
+- `read` (Boolean) Run on read: disabled by default
+- `recreate` (Map of String) A map of string values to force a replace on the resource. If not supplied, the resource will not be replaced.
+- `update` (Boolean) Run on update: disabled by default
 - `working_dir` (String) Working directory of the program. If not supplied, the program will run in the current directory.
 
 ### Read-Only
 
 - `id` (String) The id of the resource. This will always be set to `-`
 - `result` (Map of String) A map of string values returned from the external program.
+- `stage` (String) The stage of the resource.
 
 ## Processing JSON in shell scripts
 

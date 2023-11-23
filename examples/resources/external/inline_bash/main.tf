@@ -12,6 +12,33 @@ locals {
   mixed = {"mapped": local.mapped, "listed": local.listed}
 }
 
+resource "toolbox_external" "basic" {
+  create = true
+  read = false
+  update = false
+  delete = false
+  // Recreate is used to force a destroy - create cycle
+  recreate = {
+    one = "two"
+  }
+  query = {
+    one = "two"
+  }
+  program = [
+    "bash",
+    "-c",
+    <<EOF
+      # query is passed to stdin as a JSON object and
+      # will contain the reserved keys "stage" and "old_result"
+      read input
+
+      # Return a json object to be stored in the result attribute
+      # "old_result" is not allowed to prevent duplicate old_result when passed back into query
+      printf '{"one":"two"}'
+    EOF
+  ]
+}
+
 resource "toolbox_external" "mapped" {
   program = [
     "bash",
