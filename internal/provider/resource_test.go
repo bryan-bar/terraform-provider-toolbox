@@ -408,6 +408,137 @@ func TestResource_Example(t *testing.T) {
 	})
 }
 
+// Simple test to see all the stages in action with bash
+func TestResource_Bash_File(t *testing.T) {
+	bashacc := os.Getenv("TF_ACC_BASH")
+	bashlog := os.Getenv("TF_ACC_BASH_LOGFILE")
+	if bashlog == "" {
+		bashlog = "/tmp/resource_external.bash.log"
+	}
+	if bashacc == "" {
+		t.Skipf("Skipping this test since the %s environment variable is not set to any value. "+
+			"This test writes to log file %s set with %s environment variable, so it is disabled by default.",
+			"TF_ACC_BASH", bashlog, "TF_ACC_BASH_LOGFILE",
+		)
+	}
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+						resource "toolbox_external" "example" {
+							create = true
+							delete = true
+							update = true
+							read = true
+							program = [
+								"bash",
+								"-c",
+								<<-EOT
+								# Read input from stdin
+								read INPUT
+								printf "$INPUT\n" > %s
+								printf '{"value":"two","test":{"inner":"value"}}'
+								EOT
+							]
+							recreate = {foo: "bar"}
+							query = {
+								value = "test",
+								value2 = null
+							}
+						}
+					`, bashlog),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("toolbox_external.example", plancheck.ResourceActionCreate),
+					},
+					PostApplyPreRefresh:  []plancheck.PlanCheck{},
+					PostApplyPostRefresh: []plancheck.PlanCheck{},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("toolbox_external.example", "stage"),
+					resource.TestCheckResourceAttr("toolbox_external.example", "stage", "create"),
+				),
+			},
+			{
+				Config: fmt.Sprintf(`
+						resource "toolbox_external" "example" {
+							create = true
+							delete = true
+							update = true
+							read = true
+							program = [
+								"bash",
+								"-c",
+								<<-EOT
+								# Read input from stdin
+								read INPUT
+								printf "$INPUT\n" >> %s
+								printf '{"value":"two"}'
+								EOT
+							]
+							recreate = {foo: "bar"}
+							query = {
+								value = null,
+								value2 = "test"
+								value3 = "other"
+							}
+						}
+						`, bashlog),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("toolbox_external.example", plancheck.ResourceActionUpdate),
+					},
+					PostApplyPreRefresh:  []plancheck.PlanCheck{},
+					PostApplyPostRefresh: []plancheck.PlanCheck{},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("toolbox_external.example", "stage"),
+					resource.TestCheckResourceAttr("toolbox_external.example", "stage", "update"),
+				),
+			},
+			{
+				Destroy: true,
+				Config: fmt.Sprintf(`
+						resource "toolbox_external" "example" {
+							create = true
+							delete = true
+							update = true
+							read = true
+							program = [
+								"bash",
+								"-c",
+								<<-EOT
+								# Read input from stdin
+								read INPUT
+								printf "$INPUT\n" >> %s
+								printf '{"value":"delete"}'
+								EOT
+							]
+							recreate = {foo: "bar"}
+							query = {
+								value = null,
+								value2 = "test"
+								value3 = "never_seen_during_destroy"
+							}
+						}
+						`, bashlog),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("toolbox_external.example", plancheck.ResourceActionDestroy),
+					},
+					PostApplyPreRefresh:  []plancheck.PlanCheck{},
+					PostApplyPostRefresh: []plancheck.PlanCheck{},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("toolbox_external.example", "stage"),
+					resource.TestCheckResourceAttr("toolbox_external.example", "stage", "read"),
+				),
+			},
+		},
+	})
+}
+
 func TestResource_upgrade(t *testing.T) {
 	programPath, err := buildGoTestProgram()
 	if err != nil {
