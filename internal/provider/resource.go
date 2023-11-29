@@ -434,12 +434,25 @@ The program must also be executable according to the platform where Terraform is
 
 	// Maps must be converted to avoid json marshal dropping values
 	for key, value := range query {
-		filteredQuery[key] = value.ValueString()
+		var new_value any
+		err = json.Unmarshal([]byte(value.ValueString()), &new_value)
+		if err != nil {
+			filteredQuery[key] = value.ValueString()
+			continue
+		}
+		filteredQuery[key] = new_value
 	}
-	convertedOldResult := map[string]string{}
+	convertedOldResult := map[string]any{}
 	for key, value := range oldResult {
-		convertedOldResult[key] = value.ValueString()
+		var new_value any
+		err = json.Unmarshal([]byte(value.ValueString()), &new_value)
+		if err != nil {
+			convertedOldResult[key] = value.ValueString()
+			continue
+		}
+		convertedOldResult[key] = new_value
 	}
+
 	// Set stage and result in final query mapping
 	filteredQuery["old_result"] = convertedOldResult
 	filteredQuery["stage"] = stage
